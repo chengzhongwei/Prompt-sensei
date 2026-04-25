@@ -1,0 +1,31 @@
+{
+  "name": "prompt-sensei",
+  "version": "0.1.0",
+  "description": "A quiet, local-first prompt mentor for engineers using AI coding tools",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc",
+    "observe": "node dist/scripts/observe.js",
+    "report": "node dist/scripts/report.js",
+    "clear-data": "node dist/scripts/clear.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "claude-code",
+    "prompt-engineering",
+    "ai-coding",
+    "developer-tools",
+    "prompt-coach",
+    "local-first",
+    "engineering-productivity",
+    "ai-agents"
+  ],
+  "license": "Apache-2.0",
+  "author": "Chengzhong Wei"
+}
