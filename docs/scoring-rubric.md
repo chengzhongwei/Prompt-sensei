@@ -1,120 +1,189 @@
 # Scoring Rubric
 
-Prompt Sensei scores every prompt on five criteria. Each criterion is worth 0–20 points. Maximum score: 100.
+Prompt Sensei scores prompts across seven dimensions, weighted by prompt stage. Not every dimension applies to every prompt — an exploration prompt is not a failed execution prompt.
 
 ---
 
-## 1. Intent Clarity (0–20)
+## Prompt Stages
 
-**Question:** Is it immediately obvious what you want Claude to do?
+Before scoring, classify the prompt:
 
-A prompt with high intent clarity names the action, the target, and the desired outcome. A prompt with low clarity forces Claude to guess the goal before it can attempt it.
+| Stage | Description |
+|---|---|
+| **Exploration** | Still figuring out the problem — "why is this broken?" |
+| **Diagnosis** | Has symptoms and evidence — "expected X, got Y" |
+| **Execution** | Wants implementation — imperative verb, specific scope |
+| **Verification** | Wants correctness checks — edge cases, tests, review |
+| **Reusable workflow** | Wants a repeatable template or process |
+
+**Dimensions scored per stage:**
+
+| Dimension | Exploration | Diagnosis | Execution | Verification |
+|---|---|---|---|---|
+| Goal Clarity | ✓ | ✓ | ✓ | ✓ |
+| Context Completeness | | ✓ | ✓ | ✓ |
+| Input Boundaries | | | ✓ | ✓ |
+| Constraints | | | ✓ | |
+| Output Format | | | ✓ | ✓ |
+| Verification | | | ✓ | ✓ |
+| Privacy/Safety | ✓ | ✓ | ✓ | ✓ |
+
+---
+
+## Dimension Definitions
+
+### 1. Goal Clarity (all stages)
+
+Is the desired outcome unambiguous?
+
+| Score | Description | Example |
+|---|---|---|
+| 1 | No discernible goal | "Fix it." "Make it better." |
+| 2 | Goal implied but ambiguous | "Clean up the auth code." |
+| 3 | Goal stated, no completion criteria | "Refactor the login function." |
+| 4 | Goal + one completion criterion | "Refactor login() to async/await, return typed result." |
+| 5 | Goal + criterion + success definition | "Refactor login() to async/await, return `Promise<UserResult>`, existing tests must pass." |
+
+**Before:** `fix the test`
+**After:** `Debug the failing Jest test in src/__tests__/auth.test.ts — expected redirect to /login, actual /dashboard.`
+
+---
+
+### 2. Context Completeness (Diagnosis, Execution, Verification)
+
+Did the user provide enough background to act without follow-up questions?
 
 | Score | Description |
-|-------|-------------|
-| 0–5   | Vague or ambiguous — multiple interpretations are possible |
-| 6–12  | Goal is implied but requires inference |
-| 13–20 | Action + target + outcome are all explicit |
+|---|---|
+| 1 | No context |
+| 2 | Problem area named, no specifics |
+| 3 | Some context; key details missing (no error output, no file path) |
+| 4 | Most context present; one or two details could help |
+| 5 | Error output, file paths, recent changes, and reproduction steps provided |
 
-**Example (low):** `fix the bug`
-**Example (high):** `Fix the null pointer exception in auth/login.ts:47 — the function should return null when the user is not found, not throw`
+**Before:** `my tests are failing`
+**After:** `Tests failing after renaming UserService → AccountService. Error: Cannot find module './UserService'. Updated import in app.ts but tests/auth.test.ts:22 still references old name.`
 
 ---
 
-## 2. Context Richness (0–20)
+### 3. Input Boundaries (Execution, Verification)
 
-**Question:** Does the prompt include the information Claude needs to act without asking follow-ups?
-
-Relevant context includes: error messages, file paths, what you've already tried, what the code is supposed to do, and any unusual constraints of the environment.
+Is it clear what Claude should read, use, or focus on?
 
 | Score | Description |
-|-------|-------------|
-| 0–5   | No background provided |
-| 6–12  | Some context but key details are missing |
-| 13–20 | Relevant context included; Claude can start immediately |
+|---|---|
+| 1 | No input scope stated |
+| 2 | General area mentioned ("the auth code") |
+| 3 | Module or file type named |
+| 4 | Specific file named |
+| 5 | File + function or line range named |
 
-**Example (low):** `my tests are failing`
-**Example (high):** `My tests are failing after I renamed UserService to AccountService. Error: Cannot find module './UserService'. I've already updated the import in app.ts but the test at tests/auth.test.ts:22 still references the old name.`
+**Before:** `fix the validation`
+**After:** `Fix input validation in the `validateUser()` function in `src/auth/validators.ts`.`
 
 ---
 
-## 3. Explicit Constraints (0–20)
+### 4. Constraints (Execution)
 
-**Question:** Are restrictions and preferences stated upfront?
-
-Constraints save time. Without them, Claude may produce a solution that's technically correct but wrong for your context — using a banned library, touching files you didn't want changed, or adding abstractions you didn't ask for.
+Are scope limits and tradeoffs stated?
 
 | Score | Description |
-|-------|-------------|
-| 0–5   | No constraints mentioned |
-| 6–12  | Some constraints implied by context |
-| 13–20 | Constraints are clear and complete |
+|---|---|
+| 1 | No constraints |
+| 2 | One vague constraint ("keep it simple") |
+| 3 | One clear constraint ("don't add new dependencies") |
+| 4 | Two or more clear constraints |
+| 5 | Constraints cover scope, dependencies, style, and safety |
 
-**Common constraints worth stating:**
-- Dependency restrictions (`no new npm packages`)
-- File scope (`only modify src/utils/format.ts`)
-- Style preferences (`no classes, use functions`)
-- Safety boundaries (`don't modify the database schema`)
-- Output format (`show me a diff, don't apply it`)
+Common constraints worth stating:
+- `Don't change the public API`
+- `No new npm packages`
+- `Existing tests must pass`
+- `Only modify src/auth/validators.ts`
+- `Prefer the minimal diff`
 
-**Example (low):** `add input validation`
-**Example (high):** `Add input validation to the /register endpoint. Use zod (already installed). Don't modify the database schema or add new files — only change src/routes/auth.ts.`
+**Before:** `add validation to the form`
+**After:** `Add input validation to the /register endpoint. Use zod (already installed). Don't add new files or modify the database schema. Only change src/routes/auth.ts.`
 
 ---
 
-## 4. Appropriate Scope (0–20)
+### 5. Output Format (Execution, Verification)
 
-**Question:** Is this task sized for one productive exchange?
-
-Too large: "build me a full authentication system" — Claude will make dozens of undiscussed decisions. Too small: "add a semicolon on line 14" — no need for an AI. The sweet spot is a single coherent unit of work that produces a reviewable result.
+Did the user specify how the response should be structured?
 
 | Score | Description |
-|-------|-------------|
-| 0–5   | Scope is overwhelming or trivially small |
-| 6–12  | Workable but benefits from more/less decomposition |
-| 13–20 | Single coherent unit, right-sized for one exchange |
+|---|---|
+| 1 | No output specification |
+| 2 | Output implied ("fix it" implies a code change) |
+| 3 | Format partially specified ("explain the issue") |
+| 4 | Format specified with a list |
+| 5 | Format fully specified with numbered structure |
 
-**Signs of over-scope:** Multiple "and also..." clauses, outcomes that depend on architecture decisions you haven't made yet, tasks that would take a senior engineer more than a day.
-
-**Signs of under-scope:** The request is a lookup, a typo fix, or something you could do faster yourself.
+**Before:** `why is login slow`
+**After:** `Diagnose the login endpoint latency. Return: 1. Root cause 2. Proposed fix 3. Estimated latency impact 4. Test command`
 
 ---
 
-## 5. Output Specification (0–20)
+### 6. Verification (Execution, Verification)
 
-**Question:** Does the prompt describe what success looks like?
-
-Without an output specification, Claude picks one. Specifying the output — a file to create, a test to pass, a behavior to demonstrate — makes the result reviewable and reduces revision cycles.
+Did the user ask how to check correctness?
 
 | Score | Description |
-|-------|-------------|
-| 0–5   | No indication of expected output |
-| 6–12  | Expected output is implied |
-| 13–20 | Desired output is concrete and verifiable |
+|---|---|
+| 1 | No mention of verification |
+| 2 | "Make sure it works" (no method) |
+| 3 | Asks for tests but no specifics |
+| 4 | Names the test file or test type |
+| 5 | Names test file + edge cases + test command |
 
-**Example (low):** `make the login faster`
-**Example (high):** `Reduce the latency of the login endpoint so that the existing benchmark test in tests/perf/login.bench.ts passes. Target is under 200ms p95. Don't change the test.`
-
----
-
-## Grade Scale
-
-| Score  | Grade      | Meaning                                          |
-|--------|------------|--------------------------------------------------|
-| 90–100 | Master     | Near-perfect — rare and worth recognizing        |
-| 75–89  | Skilled    | Minor gaps; most sessions will produce good work |
-| 55–74  | Developing | Clear gaps; specific fixes will move the needle  |
-| 35–54  | Beginner   | Multiple fundamentals missing                    |
-| 0–34   | Needs work | Start with Intent Clarity before anything else   |
+**Before:** `implement the auth refresh`
+**After:** `Implement token refresh in src/auth/refresh.ts. Verification: run `npm test src/auth/refresh.test.ts` — all existing tests must pass. Include edge cases: expired token, missing token, concurrent refresh.`
 
 ---
 
-## Which criteria move scores the most
+### 7. Privacy/Safety (all stages)
 
-Based on common patterns in real Claude Code sessions:
+Did the prompt avoid unnecessary sensitive data?
 
-1. **Context Richness** → most common gap; error messages and file paths take seconds to add and save multiple follow-up rounds
-2. **Explicit Constraints** → prevents the most frustrating outcomes (unwanted changes, wrong libraries)
-3. **Output Specification** → makes results reviewable and reduces "that's not quite what I meant"
+| Score | Description |
+|---|---|
+| 1 | Contains obvious secrets (API keys, passwords, tokens in plain text) |
+| 2 | Contains potentially sensitive data without clear need |
+| 3 | Borderline — personal data or internal URLs present |
+| 4 | Minor concerns (internal file paths, project names) |
+| 5 | No sensitive data, or sensitive data is clearly necessary and scoped |
 
-Focus on these three first if you're below 75.
+When in doubt, redact and note that you've done so: `[API key redacted]`.
+
+---
+
+## Composite Score
+
+Scores per dimension: 1–5. The composite is the average across applicable dimensions for the prompt's stage.
+
+**Grade labels:**
+
+| Score | Grade | What it means |
+|---|---|---|
+| 4.5–5.0 | Excellent | Execution-ready |
+| 3.5–4.4 | Good | Minor gaps, will still produce useful results |
+| 2.5–3.4 | Developing | Clear improvements available |
+| 1.5–2.4 | Early stage | Normal for exploration; add evidence when ready |
+| 1.0–1.4 | Needs work | Start with goal clarity |
+
+---
+
+## The Good Prompt Pattern
+
+For execution-stage prompts, this structure reliably hits 4.0+:
+
+```
+Goal:         What do you want Claude to do?
+Context:      What background is needed?
+Input:        What file, function, or code to focus on?
+Constraints:  What should Claude not touch?
+Output:       How should the response be structured?
+Verification: How should correctness be checked?
+```
+
+Not every prompt needs all six parts. Match depth to stage.

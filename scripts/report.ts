@@ -1,131 +1,206 @@
 #!/usr/bin/env node
 /**
- * Generate a report from all local session data.
- * Usage: npx ts-node scripts/report.ts [--days 7]
+ * Generate a session report from local observation data.
+ * Usage: report.js [--days 7]
+ *
+ * Reads ~/.prompt-sensei/events.jsonl and prints a Markdown report to stdout.
  */
 
-import fs from "fs";
-import path from "path";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
 
-const DATA_DIR = path.join(process.cwd(), ".prompt-sensei");
+const DATA_DIR = join(homedir(), ".prompt-sensei");
+const EVENTS_FILE = join(DATA_DIR, "events.jsonl");
 
-interface PromptEntry {
+interface PromptEvent {
+  v: number;
   ts: string;
-  score: number;
-  grade: string;
-  charCount?: number;
-  summary?: string;
+  type: string;
+  stage?: string;
+  taskType?: string;
+  score?: number;
+  flags?: string[];
 }
 
-function gradeLabel(score: number): string {
-  if (score >= 90) return "Master";
-  if (score >= 75) return "Skilled";
-  if (score >= 55) return "Developing";
-  if (score >= 35) return "Beginner";
-  return "Needs work";
-}
-
-function bar(value: number, max: number, width = 20): string {
-  const filled = Math.round((value / max) * width);
-  return "█".repeat(filled) + "░".repeat(width - filled);
-}
-
-function loadEntries(days: number): PromptEntry[] {
-  if (!fs.existsSync(DATA_DIR)) return [];
+function loadEvents(days: number): PromptEvent[] {
+  if (!existsSync(EVENTS_FILE)) return [];
 
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
 
-  const files = fs
-    .readdirSync(DATA_DIR)
-    .filter((f) => f.startsWith("session-") && f.endsWith(".jsonl"))
-    .sort();
+  const lines = readFileSync(EVENTS_FILE, "utf8")
+    .split("\n")
+    .filter(Boolean);
 
-  const entries: PromptEntry[] = [];
-  for (const file of files) {
-    const lines = fs
-      .readFileSync(path.join(DATA_DIR, file), "utf8")
-      .split("\n")
-      .filter(Boolean);
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line) as PromptEntry;
-        if (new Date(entry.ts) >= cutoff) {
-          entries.push(entry);
-        }
-      } catch {
-        // skip malformed lines
+  const events: PromptEvent[] = [];
+  for (const line of lines) {
+    try {
+      const event = JSON.parse(line) as PromptEvent;
+      if (
+        event.type === "prompt-observed" &&
+        new Date(event.ts) >= cutoff
+      ) {
+        events.push(event);
       }
+    } catch {
+      // skip malformed lines
     }
   }
-  return entries;
+  return events;
 }
 
-function main() {
+function avg(nums: number[]): number {
+  if (nums.length === 0) return 0;
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
+function gradeLabel(score: number): string {
+  if (score >= 4.5) return "Excellent";
+  if (score >= 3.5) return "Good";
+  if (score >= 2.5) return "Developing";
+  if (score >= 1.5) return "Early stage";
+  return "Needs work";
+}
+
+function topN<T>(map: Map<T, number>, n: number): Array<[T, number]> {
+  return [...map.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, n);
+}
+
+function sparkline(scores: number[]): string {
+  const chars = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
+  return scores
+    .map((s) => chars[Math.min(Math.floor((s / 5) * chars.length), chars.length - 1)])
+    .join("");
+}
+
+function generateEncouragement(
+  avgScore: number,
+  trend: number,
+  topStage: string,
+  topFlags: Array<[string, number]>
+): string {
+  const lines: string[] = [];
+
+  if (trend > 0.2) {
+    lines.push("Your scores are trending upward. The practice is working.");
+  } else if (trend < -0.2) {
+    lines.push(
+      "Your scores dipped recently. That can happen when tasks get harder — keep going."
+    );
+  } else {
+    lines.push("Your scores are steady. Ready to push to the next level?");
+  }
+
+  if (avgScore >= 4.5) {
+    lines.push("You are consistently writing execution-ready prompts. That's a real skill.");
+  } else if (avgScore >= 3.5) {
+    lines.push(
+      "You are writing good prompts. One more habit — verification steps — will take you to the next level."
+    );
+  } else if (avgScore >= 2.5) {
+    lines.push(
+      "You are in the developing stage. The gap between where you are and 'good' is smaller than it feels."
+    );
+  } else {
+    lines.push(
+      "Every expert started with exploration prompts. Focus on one dimension at a time."
+    );
+  }
+
+  if (topFlags.length > 0) {
+    const [topFlag] = topFlags[0];
+    const flagHints: Record<string, string> = {
+      "missing-context": "Try adding the error message or stack trace to every debugging prompt.",
+      "no-constraints": "Add at least one constraint to implementation prompts ('don't change the API', 'no new deps').",
+      "no-verification": "End implementation prompts with 'Return: test command and edge cases to verify.'",
+      "no-output-format": "Specify the format: 'Return: 1. Root cause 2. Fix 3. Test command'",
+      "missing-input-boundaries": "Name the specific file and function, not just the module.",
+    };
+    const hint = flagHints[topFlag];
+    if (hint) {
+      lines.push(`\nMain growth area: ${hint}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function main(): void {
   const daysArg = process.argv.find((a) => a.startsWith("--days="));
-  const days = daysArg ? parseInt(daysArg.split("=")[1]) : 30;
+  const days = daysArg ? parseInt(daysArg.split("=")[1]!) : 7;
 
-  const entries = loadEntries(days);
+  const events = loadEvents(days);
 
-  if (entries.length === 0) {
+  if (events.length === 0) {
     console.log("No session data found.");
     console.log(
-      "Activate observation mode with /prompt-sensei observe to start tracking."
+      "Activate observation with `/prompt-sensei observe` to start tracking."
     );
     return;
   }
 
-  const scores = entries.map((e) => e.score);
-  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-  const min = Math.min(...scores);
-  const max = Math.max(...scores);
-  const trend = scores.length >= 3 ? scores.slice(-3) : scores;
-  const trendAvg = trend.reduce((a, b) => a + b, 0) / trend.length;
+  const scores = events.map((e) => e.score).filter((s): s is number => s !== undefined);
+  const avgScore = avg(scores);
+  const recent3 = scores.slice(-3);
+  const older3 = scores.slice(-6, -3);
+  const trend = recent3.length > 0 && older3.length > 0
+    ? avg(recent3) - avg(older3)
+    : 0;
 
-  const gradeCounts: Record<string, number> = {
-    Master: 0,
-    Skilled: 0,
-    Developing: 0,
-    Beginner: 0,
-    "Needs work": 0,
-  };
-  for (const e of entries) {
-    const g = gradeLabel(e.score);
-    gradeCounts[g] = (gradeCounts[g] ?? 0) + 1;
-  }
+  const stageCounts = new Map<string, number>();
+  const taskCounts = new Map<string, number>();
+  const flagCounts = new Map<string, number>();
 
-  console.log("\n╔══════════════════════════════════════╗");
-  console.log("║        Prompt Sensei Report          ║");
-  console.log("╚══════════════════════════════════════╝\n");
-  console.log(`Period:   last ${days} days`);
-  console.log(`Prompts:  ${entries.length}`);
-  console.log(`Average:  ${avg.toFixed(1)}/100 — ${gradeLabel(avg)}`);
-  console.log(`Range:    ${min} – ${max}`);
-  console.log(
-    `Trend:    ${trendAvg.toFixed(1)} (last ${trend.length} prompts) ${trendAvg > avg ? "↑" : trendAvg < avg ? "↓" : "→"}`
-  );
-  console.log("\nGrade distribution:");
-
-  for (const [grade, count] of Object.entries(gradeCounts)) {
-    if (count === 0) continue;
-    const pct = ((count / entries.length) * 100).toFixed(0);
-    console.log(`  ${grade.padEnd(12)} ${bar(count, entries.length)} ${count} (${pct}%)`);
-  }
-
-  const recent = entries.slice(-5).reverse();
-  if (recent.length > 0) {
-    console.log("\nRecent prompts:");
-    for (const e of recent) {
-      const date = new Date(e.ts).toLocaleDateString();
-      const tip = e.summary ? `  ← ${e.summary}` : "";
-      console.log(`  ${date}  ${String(e.score).padStart(3)}/100  ${e.grade}${tip}`);
+  for (const event of events) {
+    if (event.stage) {
+      stageCounts.set(event.stage, (stageCounts.get(event.stage) ?? 0) + 1);
+    }
+    if (event.taskType) {
+      taskCounts.set(event.taskType, (taskCounts.get(event.taskType) ?? 0) + 1);
+    }
+    for (const flag of event.flags ?? []) {
+      flagCounts.set(flag, (flagCounts.get(flag) ?? 0) + 1);
     }
   }
 
-  console.log(
-    `\n${avg >= 75 ? "Strong work. Keep pushing for Master-level clarity." : "Focus on explicit constraints and context richness — they move scores fastest."}`
-  );
-  console.log();
+  const topStage = topN(stageCounts, 1)[0]?.[0] ?? "unknown";
+  const topTask = topN(taskCounts, 1)[0]?.[0] ?? "unknown";
+  const topFlags = topN(flagCounts, 3);
+
+  const trendSymbol = trend > 0.1 ? "↑" : trend < -0.1 ? "↓" : "→";
+
+  console.log("# Prompt Sensei Report");
+  console.log(`Observed ${events.length} prompts in the last ${days} days.\n`);
+  console.log(`**Average score:**    ${avgScore.toFixed(1)} / 5  (${gradeLabel(avgScore)})`);
+  console.log(`**Trend:**            ${trendSymbol}  ${Math.abs(trend).toFixed(1)} vs previous period`);
+  console.log(`**Most common type:** ${topTask}`);
+  console.log(`**Most common stage:** ${topStage}`);
+
+  if (scores.length >= 3) {
+    console.log(`\n**Score history:**    ${sparkline(scores.slice(-20))}`);
+  }
+
+  if (topFlags.length > 0) {
+    console.log("\n## Most common gaps");
+    for (const [flag, count] of topFlags) {
+      console.log(`- ${flag} (${count}×)`);
+    }
+  }
+
+  const stageEntries = topN(stageCounts, 5);
+  if (stageEntries.length > 0) {
+    console.log("\n## Stage breakdown");
+    for (const [stage, count] of stageEntries) {
+      const pct = ((count / events.length) * 100).toFixed(0);
+      console.log(`- ${stage}: ${count} (${pct}%)`);
+    }
+  }
+
+  console.log("\n## Feedback");
+  console.log(generateEncouragement(avgScore, trend, topStage, topFlags));
 }
 
 main();

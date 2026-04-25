@@ -1,93 +1,169 @@
 # Example: A Debugging Journey
 
-This example shows one prompt improving across three iterations. Each iteration applies the feedback from the previous score.
+This example follows one developer improving the same prompt across four iterations over two days. Each iteration applies one habit from the previous session's feedback.
+
+The scenario: a Jest test is failing after adding refresh-token support. The developer is using Claude Code to debug it.
 
 ---
 
-## Iteration 1 — First attempt
+## Day 1, Attempt 1 — Exploration
 
 **Prompt:**
-> fix the login bug
+> fix this test
 
-**Score: 12/100 — Needs work**
+**Stage:** Exploration
+**Score:** 1.5/5 (as Exploration) · 1.2/5 (if Execution-ready)
 
-| Criterion            | Score |
-|----------------------|-------|
-| Intent Clarity       | 4/20  |
-| Context Richness     | 2/20  |
-| Explicit Constraints | 2/20  |
-| Appropriate Scope    | 2/20  |
-| Output Specification | 2/20  |
+| Dimension | Score | Note |
+|---|---|---|
+| Goal Clarity | 2/5 | Implies debugging help but no goal stated |
+| Privacy/Safety | 5/5 | No sensitive data |
 
 **Feedback:**
-- **Intent Clarity**: "fix" + "bug" tells Claude almost nothing. What kind of bug? What is the wrong behavior?
-- **Context Richness**: No error, no file, no reproduction steps. Claude will ask 3–4 follow-up questions before doing anything useful.
+This is a normal starting point when you first notice something is wrong. The problem is that "this test" could be any of the hundreds of tests in the project, and "fix" does not describe whether you want a diagnosis, a patch, or an explanation.
+
+**One habit to practice next:**
+Name the specific failing test and describe what you expected vs. what actually happened.
 
 ---
 
-## Iteration 2 — Added context
+## Day 1, Attempt 2 — Diagnosis
+
+After getting a partial response, the developer now has the error output. They try again.
 
 **Prompt:**
-> The login form is submitting but users aren't being redirected after successful login. There's no error in the console. Fix it.
+> A Jest test is failing. Expected /login, actual /dashboard.
 
-**Score: 48/100 — Beginner**
+**Stage:** Diagnosis
+**Score:** 2.8/5
 
-| Criterion            | Score |
-|----------------------|-------|
-| Intent Clarity       | 14/20 |
-| Context Richness     | 8/20  |
-| Explicit Constraints | 4/20  |
-| Appropriate Scope    | 12/20 |
-| Output Specification | 10/20 |
+| Dimension | Score | Note |
+|---|---|---|
+| Goal Clarity | 3/5 | Symptom is clear; goal (debug? fix? explain?) is not |
+| Context Completeness | 2/5 | No file, no test name, no recent change context |
+| Privacy/Safety | 5/5 | Clean |
 
 **Feedback:**
-- **Context Richness**: Better — symptom is clear. Still missing: which file handles the redirect? Which framework (Next.js, React Router, plain JS)?
-- **Explicit Constraints**: Should Claude add logging? Touch the auth middleware? Modify tests?
+Meaningful progress. You added expected vs. actual behavior — that's the most valuable single addition for any debugging prompt. Claude can now at least understand the failure.
+
+What's still missing: which file? Which test? What changed recently that might have caused this?
+
+**One habit to practice next:**
+Add the file path and the recent change that might be related.
 
 ---
 
-## Iteration 3 — Full prompt
+## Day 2, Attempt 3 — Execution
+
+The developer now knows the relevant file and suspects a recent change.
 
 **Prompt:**
-> After a successful login, users should be redirected to `/dashboard` but they stay on the `/login` page. No console errors. The login logic is in `src/pages/login.tsx` — the `handleSubmit` function calls `signIn()` from next-auth and then should call `router.push('/dashboard')`. I think the issue is that `router.push` runs before `signIn` resolves. Fix the async handling in `handleSubmit` only — don't change the auth config, middleware, or tests.
+> Please debug this failing Jest test. Expected redirect to /login, actual /dashboard.
+> Related file: src/__tests__/auth.test.ts
+> Recent change: added refresh-token support.
+> Do not refactor the whole auth flow.
 
-**Score: 91/100 — Master**
+**Stage:** Execution
+**Score:** 3.6/5
 
-| Criterion            | Score |
-|----------------------|-------|
-| Intent Clarity       | 19/20 |
-| Context Richness     | 18/20 |
-| Explicit Constraints | 18/20 |
-| Appropriate Scope    | 18/20 |
-| Output Specification | 18/20 |
+| Dimension | Score | Note |
+|---|---|---|
+| Goal Clarity | 4/5 | Clear outcome |
+| Context Completeness | 3/5 | Recent change mentioned; error text still missing |
+| Input Boundaries | 3/5 | Test file named; specific test case not named |
+| Constraints | 3/5 | One constraint ("don't refactor") |
+| Output Format | 2/5 | No structure specified |
+| Verification | 1/5 | Not mentioned |
+| Privacy/Safety | 5/5 | Clean |
 
 **Feedback:**
-- Near-perfect. Claude can go directly to the fix.
-- Minor gap: "Output Specification" — could mention whether a test update is expected, but the constraint "don't change tests" makes this acceptable.
+This is a solid debugging prompt. Claude can work with this and will probably get to the root cause. Two things that would make the response more useful: specifying the output format (root cause, fix, test command) and adding a verification step.
+
+**One habit to practice next:**
+End every debugging prompt with "Return: 1. Root cause 2. Minimal fix 3. Test command."
+
+---
+
+## Day 2, Attempt 4 — Execution (polished)
+
+**Prompt:**
+> Please debug this failing Jest test.
+>
+> Goal:
+>   Find why unauthenticated users are redirected to /dashboard instead of /login.
+>
+> Context:
+>   - Stack: TypeScript, React, Jest
+>   - Recent change: added refresh-token support
+>   - Related files:
+>     - src/middleware/auth.ts
+>     - src/routes/ProtectedRoute.tsx
+>     - src/__tests__/auth.test.ts
+>
+> Expected:
+>   If the user has no access token and no refresh token, redirect to /login.
+>
+> Actual:
+>   The test receives /dashboard.
+>
+> Constraints:
+>   - Do not refactor the whole auth flow
+>   - Prefer the smallest safe fix
+>   - If the test expectation is wrong, explain why before changing it
+>
+> Return:
+>   1. Root cause
+>   2. Proposed fix
+>   3. Patch summary
+>   4. Test command
+>   5. Edge cases to verify
+
+**Stage:** Execution
+**Score:** 4.7/5 — Excellent
+
+| Dimension | Score | Note |
+|---|---|---|
+| Goal Clarity | 5/5 | Outcome is specific and verifiable |
+| Context Completeness | 5/5 | Stack, change, files, expected, actual |
+| Input Boundaries | 4/5 | Three files named (could specify which functions) |
+| Constraints | 5/5 | Three constraints, all clear |
+| Output Format | 5/5 | Numbered return structure |
+| Verification | 4/5 | Test command + edge cases requested |
+| Privacy/Safety | 5/5 | No sensitive data |
+
+**Feedback:**
+Excellent. This is execution-ready. Claude can go directly to the fix with no follow-up questions. The structured return format makes the response easy to review and act on.
 
 ---
 
 ## What changed
 
-| Version | Key addition                           | Score jump |
-|---------|----------------------------------------|------------|
-| v1 → v2 | Named the symptom                      | +36        |
-| v2 → v3 | Added file path, root cause hypothesis, and constraints | +43 |
+| Attempt | Key addition | Score jump |
+|---|---|---|
+| 1 → 2 | Expected vs. actual behavior | +1.3 |
+| 2 → 3 | File name + constraint | +0.8 |
+| 3 → 4 | Output structure + verification | +1.1 |
 
-The largest gains came from **context** (knowing where to look) and **constraints** (knowing what not to touch). Both took under 30 seconds to add.
+The three biggest gains came from:
+1. Adding expected vs. actual (most impactful single addition for any debugging prompt)
+2. Naming the specific file
+3. Specifying the return format
+
+Each of those took under 30 seconds to add. The cumulative effect was the difference between a response that required 3 follow-up rounds and one that produced the fix in a single exchange.
 
 ---
 
 ## The pattern
 
-Good debugging prompts tend to follow this structure:
+Execution-ready debugging prompts tend to include:
 
 ```
-[Symptom]: What is visibly wrong
-[Expected behavior]: What should happen instead
-[Location]: File + function where the issue likely lives
-[Hypothesis]: What you think might be causing it (even if unsure)
-[Constraints]: What Claude should not touch
+Goal:        What behavior is wrong?
+Context:     Stack, recent change, related files
+Expected:    What should happen?
+Actual:      What actually happens?
+Constraints: What should Claude not touch?
+Return:      Root cause · Fix · Test command · Edge cases
 ```
 
-You don't need all five parts every time, but having them ready makes the difference between one round and five.
+Start where you are. Add one element at a time. That's how this prompt went from 1.5 to 4.7.
