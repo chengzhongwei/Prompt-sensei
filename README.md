@@ -210,9 +210,53 @@ or:
 
 The skill gives feedback on prompt stage, task type, clarity, context, constraints, output format, verification, privacy/safety, a suggested rewrite, and one habit to practice next.
 
-### 2. Optional Local Observer
+### 2. Observe Mode — Inline Scoring
 
-Prompt Sensei can optionally observe Claude Code prompts through a local hook.
+Activate observation mode to get a live score after every prompt you send:
+
+```
+/prompt-sensei observe
+```
+
+After each message, Prompt Sensei appends a one-line score at the end of its response:
+
+```
+[Sensei: Score - 68/100; Tip: add the error message and file path]
+```
+
+When your prompt is excellent:
+
+```
+[Sensei: Score - 94/100; Excellent — execution-ready prompt]
+```
+
+The score is calculated from 7 dimensions on a 1–5 scale, converted to /100. The tip always names the single most impactful improvement — one habit at a time, not a list.
+
+Scores by stage:
+
+| Score | Grade | What it means |
+|---|---|---|
+| 90–100 | Excellent | Execution-ready |
+| 70–89 | Good | Minor gaps |
+| 50–69 | Developing | Clear improvements available |
+| 30–49 | Early stage | Normal for exploration |
+| 10–29 | Needs work | Start with goal clarity |
+
+To see your session statistics:
+
+```
+/prompt-sensei report
+```
+
+To clear local data:
+
+```
+/prompt-sensei clear
+```
+
+### 3. Optional Local Observer
+
+Prompt Sensei can optionally observe Claude Code prompts through a local hook, recording metadata silently in the background without needing the skill to be active.
 
 The observer:
 
