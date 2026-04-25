@@ -140,16 +140,17 @@ When the user activates `/prompt-sensei observe`:
 3. After each subsequent user message this session:
    - Classify the prompt stage
    - Score it on the relevant dimensions
+   - Convert the composite score (1–5) to a 100-point display score by multiplying by 20 and rounding to the nearest integer
    - Run: `node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --stage <stage> --score <score> --task-type <type> --flags <comma-separated-flags>`
    - Append one line to the conversation **after your main response**:
      ```
-     [Sensei — stage: Execution · score: 3.8/5 · tip: add verification command]
+     [Sensei: Score - 68/100; Tip: add the error message and file path]
      ```
    - The tip should name the single lowest-scoring dimension and give a 5-word concrete fix, not a vague suggestion.
 
-4. If the score is 4.5 or above, say something encouraging instead of a tip:
+4. If the score is 90/100 or above, say something encouraging instead of a tip:
    ```
-   [Sensei — stage: Execution · score: 4.7/5 · excellent execution-ready prompt]
+   [Sensei: Score - 94/100; Excellent — execution-ready prompt]
    ```
 
 ---
@@ -237,7 +238,7 @@ Commands:
   /prompt-sensei help                  Show this help
 
 Prompt stages:   Exploration · Diagnosis · Execution · Verification · Reusable workflow
-Scoring:         7 dimensions, 1–5 scale, stage-aware weights
+Scoring:         7 dimensions, displayed as /100, stage-aware weights
 Storage:         ~/.prompt-sensei/events.jsonl — local only, no cloud
 Privacy:         No raw prompt text stored by default
 ```
