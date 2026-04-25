@@ -21,15 +21,15 @@ Action prompts are never penalized for missing Constraints, Verification, or Out
 
 **Dimensions scored per stage:**
 
-| Dimension | Exploration | Diagnosis | Execution | Verification | Action |
-|---|---|---|---|---|---|
-| Goal Clarity | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Context Completeness | | ✓ | ✓ | ✓ | |
-| Input Boundaries | | | ✓ | ✓ | |
-| Constraints | | | ✓ | | |
-| Output Format | | | ✓ | ✓ | |
-| Verification | | | ✓ | ✓ | |
-| Privacy/Safety | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Dimension | Exploration | Diagnosis | Execution | Verification | Reusable workflow | Action |
+|---|---|---|---|---|---|---|
+| Goal Clarity | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Context Completeness | | ✓ | ✓ | ✓ | ✓ | |
+| Input Boundaries | | | ✓ | ✓ | ✓ | |
+| Constraints | | | ✓ | | ✓ | |
+| Output Format | | | ✓ | ✓ | ✓ | |
+| Verification | | | ✓ | ✓ | ✓ | |
+| Privacy/Safety | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ---
 
@@ -86,7 +86,7 @@ Is it clear what Claude should read, use, or focus on?
 
 ---
 
-### 4. Constraints (Execution)
+### 4. Constraints (Execution, Reusable workflow)
 
 Are scope limits and tradeoffs stated?
 
@@ -127,7 +127,7 @@ Did the user specify how the response should be structured?
 
 ---
 
-### 6. Verification (Execution, Verification)
+### 6. Verification (Execution, Verification, Reusable workflow)
 
 Did the user ask how to check correctness?
 
@@ -163,6 +163,19 @@ When in doubt, redact and note that you've done so: `[API key redacted]`.
 ## Composite Score
 
 Individual dimensions are scored 1–5. The composite is reported as XX / 100 (average of applicable dimensions × 20, rounded). A prompt with no issues in any dimension scores 100 / 100.
+
+| Stage | Dimensions included in composite |
+|---|---|
+| Exploration | Goal Clarity + Privacy/Safety |
+| Diagnosis | Goal Clarity + Context Completeness + Privacy/Safety |
+| Execution | All seven dimensions |
+| Verification | Goal Clarity + Context Completeness + Input Boundaries + Output Format + Verification + Privacy/Safety |
+| Reusable workflow | Goal Clarity + Context Completeness + Input Boundaries + Constraints + Output Format + Verification + Privacy/Safety |
+| Action | Goal Clarity + Privacy/Safety |
+
+Verification prompts exclude Constraints because the user is asking for checks, review, or tests rather than an implementation plan. Reusable workflow prompts include Constraints because repeatable processes need scope, audience, and adoption boundaries.
+
+Scores are stage-relative. A prompt can score well as Exploration and then score lower as Execution after the user asks for file edits, because more dimensions apply. This is expected: the rubric raises the bar when the agent is being asked to make real changes.
 
 **Grade labels:**
 

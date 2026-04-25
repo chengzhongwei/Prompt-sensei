@@ -2,7 +2,7 @@
 
 This example follows one developer improving the same prompt across four iterations over two days. Each iteration applies one habit from the previous session's feedback.
 
-The scenario: a Jest test is failing after adding refresh-token support. The developer is using Claude Code to debug it.
+The scenario: a Jest test is failing after adding refresh-token support. The developer is using an AI coding agent to debug it.
 
 ---
 
@@ -12,7 +12,7 @@ The scenario: a Jest test is failing after adding refresh-token support. The dev
 > fix this test
 
 **Stage:** Exploration
-**Score:** 1.5/5 (as Exploration) · 1.2/5 (if Execution-ready)
+**Score:** 70/100 — Good for Exploration
 
 | Dimension | Score | Note |
 |---|---|---|
@@ -35,7 +35,7 @@ After getting a partial response, the developer now has the error output. They t
 > A Jest test is failing. Expected /login, actual /dashboard.
 
 **Stage:** Diagnosis
-**Score:** 2.8/5
+**Score:** 67/100 — Developing
 
 | Dimension | Score | Note |
 |---|---|---|
@@ -64,7 +64,7 @@ The developer now knows the relevant file and suspects a recent change.
 > Do not refactor the whole auth flow.
 
 **Stage:** Execution
-**Score:** 3.6/5
+**Score:** 60/100 — Developing
 
 | Dimension | Score | Note |
 |---|---|---|
@@ -119,7 +119,7 @@ End every debugging prompt with "Return: 1. Root cause 2. Minimal fix 3. Test co
 >   5. Edge cases to verify
 
 **Stage:** Execution
-**Score:** 4.7/5 — Excellent
+**Score:** 94/100 — Excellent
 
 | Dimension | Score | Note |
 |---|---|---|
@@ -138,11 +138,13 @@ Excellent. This is execution-ready. Claude can go directly to the fix with no fo
 
 ## What changed
 
-| Attempt | Key addition | Score jump |
+| Attempt | Stage | Key addition | Effect |
 |---|---|---|
-| 1 → 2 | Expected vs. actual behavior | +1.3 |
-| 2 → 3 | File name + constraint | +0.8 |
-| 3 → 4 | Output structure + verification | +1.1 |
+| 1 → 2 | Exploration → Diagnosis | Expected vs. actual behavior | The problem became diagnosable |
+| 2 → 3 | Diagnosis → Execution | File name + constraint | Claude had enough scope to start work |
+| 3 → 4 | Execution → Execution | Output structure + verification | The request became execution-ready |
+
+The score is stage-aware, so it is not always a straight line upward. When the prompt moves from Exploration to Execution, Prompt Sensei applies more dimensions and the bar gets higher. That is intentional: a short exploratory prompt can be reasonable early, while an implementation request needs clearer context, boundaries, and verification.
 
 The three biggest gains came from:
 1. Adding expected vs. actual (most impactful single addition for any debugging prompt)
@@ -166,4 +168,4 @@ Constraints: What should Claude not touch?
 Return:      Root cause · Fix · Test command · Edge cases
 ```
 
-Start where you are. Add one element at a time. That's how this prompt went from 1.5 to 4.7.
+Start where you are. Add one element at a time. That is how this prompt moved from a reasonable first signal to an execution-ready request.

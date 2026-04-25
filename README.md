@@ -8,7 +8,7 @@ It is not a leaderboard.
 It is not employee surveillance.
 It is not prompt police.
 
-It is a small Claude Code skill and local prompt-coaching toolkit that helps engineers turn rough intent into clear, effective, work-ready prompts.
+It is a small AI coding skill and local prompt-coaching toolkit that helps engineers turn rough intent into clear, effective, work-ready prompts.
 
 ---
 
@@ -37,6 +37,25 @@ With no arguments, starts observation mode by default — scores your prompts qu
 /prompt-sensei help
 ```
 
+### Use as a Codex skill
+
+Install the same project into Codex's skills directory:
+
+```bash
+git clone https://github.com/chengzhongwei/Prompt-sensei ~/.codex/skills/prompt-sensei
+(cd ~/.codex/skills/prompt-sensei && npm install && npm run build)
+```
+
+Codex does not use the Claude Code slash-command hook model. Use natural language instead:
+
+```txt
+Use prompt-sensei to review this prompt: "fix this test"
+Use prompt-sensei to show my report.
+Use prompt-sensei observe for this session.
+```
+
+Codex can use the same rubric and local report scripts. Automatic per-message observation depends on the host app keeping the skill active in context; the Claude Code hook shown below is Claude-specific.
+
 ### Optional: Enable local prompt observation
 
 Add to your Claude Code settings (`~/.claude/settings.json`):
@@ -47,7 +66,7 @@ Add to your Claude Code settings (`~/.claude/settings.json`):
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js",
+        "command": "node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --hash-only",
         "async": true,
         "timeout": 10
       }
@@ -56,7 +75,7 @@ Add to your Claude Code settings (`~/.claude/settings.json`):
 }
 ```
 
-The observer writes local metadata to `~/.prompt-sensei/events.jsonl`.
+The hook writes only a redacted prompt hash to `~/.prompt-sensei/events.jsonl`, and only after you have consented by running `/prompt-sensei observe` once. Hash-only hook captures are excluded from scoring because the hook does not have the conversation context needed for stage-aware feedback.
 
 Generate a report:
 
@@ -256,20 +275,26 @@ Prompt Sensei does not just ask "Was this prompt good?" It asks "Is the user lea
 
 ### 1. Claude Code Skill
 
-Use it on demand:
+Start observation mode with no arguments:
 
 ```
 /prompt-sensei
 ```
 
-or:
+This is the same as:
+
+```
+/prompt-sensei observe
+```
+
+Use review mode when you want feedback on one specific prompt without starting ongoing observation:
 
 ```
 /prompt-sensei review this prompt:
 "fix this test"
 ```
 
-The skill gives feedback on prompt stage, task type, clarity, context, constraints, output format, verification, privacy/safety, a suggested rewrite, and one habit to practice next.
+Review mode gives feedback on prompt stage, task type, clarity, context, constraints, output format, verification, privacy/safety, a suggested rewrite, and one habit to practice next.
 
 ### 2. Observe Mode — Inline Scoring
 
@@ -279,13 +304,15 @@ Activate observation mode to get a live score after every prompt you send:
 /prompt-sensei observe
 ```
 
+`/prompt-sensei` with no arguments also starts observation mode.
+
 After each message, Prompt Sensei appends a one-line score at the end of its response:
 
-> **[[Sensei: Score - 68/100; Tip: add the error message and file path]]()**
+> **[Sensei: Score - 68/100; Tip: add the error message and file path]**
 
 When your prompt is excellent:
 
-> **[[Sensei: Score - 94/100; Excellent — execution-ready prompt]]()**
+> **[Sensei: Score - 94/100; Excellent — execution-ready prompt]**
 
 The score is calculated from 7 dimensions on a 1–5 scale, converted to /100. The tip always names the single most impactful improvement — one habit at a time, not a list.
 
@@ -300,6 +327,14 @@ Scores by stage:
 | 10–29 | Needs work | Start with goal clarity |
 
 Action prompts (short follow-through directives) are only scored on Goal Clarity and Privacy/Safety — never penalized for missing Constraints, Verification, or Output Format.
+
+### Why stage-aware scores can move down
+
+Prompt Sensei does not ask "is this a perfect execution prompt?" at every stage. It first asks "what kind of prompt is this?"
+
+An early debugging prompt like `why is auth broken` may score well as Exploration because it only needs a clear direction and no sensitive data. Later, once you ask the agent to edit files, the same level of detail would score lower as Execution because more dimensions apply: context, input boundaries, constraints, output format, and verification.
+
+So a score can dip when a prompt moves from Exploration to Execution. That is not a regression. It means the prompt has entered a stage where the agent can make real changes, so Prompt Sensei raises the bar.
 
 To stop observation for the current session:
 
@@ -319,21 +354,18 @@ To clear local data:
 /prompt-sensei clear
 ```
 
-### 3. Optional Local Observer
+### 3. Optional Local Hook
 
-Prompt Sensei can optionally observe Claude Code prompts through a local hook, recording metadata silently in the background without needing the skill to be active.
+Prompt Sensei can optionally hash Claude Code prompts through a local hook, recording lightweight metadata silently in the background after consent.
 
-The observer:
+The hook:
 
 - reads prompt events locally
 - redacts sensitive data (emails, API keys, tokens)
 - hashes prompts
-- classifies prompt stage
-- scores prompt quality
-- stores lightweight metadata locally
-- generates private reports
+- stores the hash locally as a hash-only capture
 
-By default, it does not store raw prompts.
+It does not classify or score prompts. Stage-aware scoring happens only in `/prompt-sensei observe`, where Claude has enough session context to classify the prompt and append feedback.
 
 ---
 
@@ -363,19 +395,11 @@ Prompt Sensei is privacy-first by design.
 - no leaderboard
 - no raw prompt storage
 
-By default, Prompt Sensei stores only: timestamp, task type, prompt stage, prompt hash, scores, and lightweight feedback tags.
+By default, Prompt Sensei stores only: timestamp, task type, prompt stage, prompt hash, scores, and lightweight feedback tags. Hook mode stores only timestamp and prompt hash.
 
 Two files are created locally on first use:
 - `~/.prompt-sensei/events.jsonl` — observation log
 - `~/.prompt-sensei/config.json` — consent record (created once)
-
-Raw prompt storage is opt-in only:
-
-```bash
-PROMPT_SENSEI_STORE_RAW=1 npm run observe
-```
-
-Even then, Prompt Sensei attempts to redact emails, API keys, tokens, private keys, and URLs with query parameters before storing.
 
 See [docs/privacy.md](docs/privacy.md) for full details.
 
@@ -391,6 +415,7 @@ Observed 18 prompts in the last 7 days.
 **Trend:**             ↑  6 pts vs previous 5 prompts
 **Most common type:**  debugging
 **Most common stage:** diagnosis
+**Stage trend:**       more execution prompts recently (3/5 vs 1/5 previous)
 
 **Score history:**     ▂▃▃▄▄▄▅▅▆▆
 
@@ -399,6 +424,10 @@ Observed 18 prompts in the last 7 days.
 - no-verification (5×)
 - no-constraints (3×)
 
+## Growth area by task type
+- debugging: missing-context (5×)
+- implementation: no-verification (3×)
+
 ## Stage breakdown
 - diagnosis: 9 (50%)
 - execution: 6 (33%)
@@ -406,9 +435,11 @@ Observed 18 prompts in the last 7 days.
 
 ## Feedback
 Your scores are trending upward. The practice is working.
-You are in the developing stage. The gap between where you are and 'good' is smaller than it feels.
+Your debugging prompts are in the developing range. The next gain is likely one missing detail, not a full rewrite.
 
-Main growth area: Try adding the error message or stack trace to every debugging prompt.
+Next habit for debugging: Add the error message, expected behavior, and recent change before asking for help.
+Why it matters: Context is the difference between guessing and diagnosing.
+Practice: For the next three debugging prompts, include Expected, Actual, and Recent change.
 ```
 
 ---
@@ -417,7 +448,7 @@ Main growth area: Try adding the error message or stack trace to every debugging
 
 Prompt Sensei is for:
 
-- engineers using Claude Code
+- engineers using Claude Code, Codex, or similar AI coding agents
 - teams adopting AI coding tools
 - developers who want better AI results
 - people learning prompt engineering through practice

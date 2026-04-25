@@ -16,7 +16,7 @@ It says: **This was reasonable as an exploration prompt. Now that you know the f
 
 Prompting for a chat model is forgiving. If your question is vague, the model gives a vague answer and you try again. The cost is low.
 
-Prompting for an agentic coding tool like Claude Code is different. The agent edits real files, makes real changes, and can produce results that are hard to reverse. A vague prompt does not just produce a vague answer — it produces undiscussed decisions, over-broad edits, and revision loops that waste time.
+Prompting for an agentic coding tool like Claude Code or Codex is different. The agent edits real files, makes real changes, and can produce results that are hard to reverse. A vague prompt does not just produce a vague answer — it produces undiscussed decisions, over-broad edits, and revision loops that waste time.
 
 Prompt quality in this context is a professional skill, not a nicety.
 
@@ -28,7 +28,9 @@ The most important design principle in Prompt Sensei is that **stage matters mor
 
 A one-line exploration prompt like `why is auth broken` is not a failed execution prompt. It is the right prompt for the moment — you are still gathering evidence. Penalizing it like an execution request is wrong and discouraging.
 
-Prompt Sensei classifies every prompt before scoring it. An exploration prompt is scored lightly — primarily on goal clarity and privacy. An execution prompt is scored on all seven dimensions. The same feedback that helps an execution prompt would confuse someone still in exploration.
+Prompt Sensei classifies every prompt before scoring it. An exploration prompt is scored lightly — primarily on goal clarity and privacy. An execution prompt is scored on all seven dimensions. Verification and reusable workflow prompts use their own dimension sets. The same feedback that helps an execution prompt would confuse someone still in exploration.
+
+Because the rubric is stage-aware, scores are not meant to be compared blindly across stages. Moving from Exploration to Execution can lower the displayed score because more dimensions suddenly apply. That is not a regression. It means the prompt is now being judged by the standard of the work it is asking Claude to do.
 
 This is the key insight the rubric is built around.
 
@@ -56,17 +58,19 @@ This is slow enough to internalize and fast enough to try immediately.
 
 ## Growth over perfection
 
-Prompt Sensei tracks trends, not one-off scores. A prompt that scores 2.5 is not a failure — it is a baseline. If the next similar prompt scores 3.2, that is progress worth noting.
+Prompt Sensei tracks trends, not one-off scores. A prompt that scores 50/100 is not a failure — it is a baseline. If the next similar prompt scores 64/100, that is progress worth noting.
 
-The reports are designed to show movement, not rank. The goal is "Is the user learning?" not "Is this prompt good?"
+The reports are designed to show movement, not rank. They separate scored observations from hash-only hook captures, and the most useful signal is the next habit to practice for the task type the user actually does. The goal is "Is the user learning?" not "Is this prompt good?"
 
 ---
 
 ## Privacy as a first principle
 
-Prompt content is sensitive. It often contains business logic, debugging context, internal file paths, or in-progress thinking. Storing it without consent is not acceptable.
+Prompt content is sensitive. It often contains business logic, debugging context, internal file paths, or in-progress thinking. Storing even lightweight metadata without consent is not acceptable.
 
-Prompt Sensei stores nothing by default except scores and metadata. No raw text. No cloud. No accounts. The consent check at first use is not a legal formality — it is a moment to give users control before data collection starts.
+Prompt Sensei stores nothing until the user consents. After consent, observe mode stores scored metadata: timestamp, stage, task type, score, feedback flags, and optionally a redacted prompt hash when prompt text is available to the local script. It does not store raw prompt text or conversation history. The optional hook records hash-only captures after consent; those captures are excluded from score trends because they do not contain stage or score data.
+
+No cloud. No accounts. No raw conversation archive. The consent check at first use is not a legal formality — it is a moment to give users control before data collection starts.
 
 The data that is stored is auditable: it is human-readable JSON in a file on your machine. You can inspect it, understand it, and delete it in seconds.
 
