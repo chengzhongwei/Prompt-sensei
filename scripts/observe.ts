@@ -73,7 +73,6 @@ interface Config {
   v: number;
   consentGiven: boolean;
   consentAt: string;
-  storeRaw: boolean;
 }
 
 function loadConfig(): Config | null {
@@ -152,14 +151,12 @@ async function main(): Promise<void> {
   const flagsRaw = args["flags"] ? String(args["flags"]) : "";
   const flags = flagsRaw ? flagsRaw.split(",").map((f) => f.trim()).filter(Boolean) : [];
 
-  // Optionally hash the prompt from stdin (never store raw text)
+  // Raw prompt text is never stored. If a prompt is piped in via stdin,
+  // we hash a redacted copy so the hash itself cannot leak secrets.
   let promptHash: string | undefined;
-  const storeRaw = process.env["PROMPT_SENSEI_STORE_RAW"] === "1";
-  if (!storeRaw) {
-    const stdinText = await readStdin();
-    if (stdinText.trim()) {
-      promptHash = hashPrompt(stdinText);
-    }
+  const stdinText = await readStdin();
+  if (stdinText.trim()) {
+    promptHash = hashPrompt(stdinText);
   }
 
   if (score !== undefined && (isNaN(score) || score < 0 || score > 5)) {

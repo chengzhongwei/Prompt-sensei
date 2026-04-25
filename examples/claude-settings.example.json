@@ -1,0 +1,17 @@
+{
+  "_comment": "Optional Claude Code settings for Prompt Sensei. Copy the relevant block into ~/.claude/settings.json to record prompt metadata directly via a hook. The skill itself does not require this — it works on demand via /prompt-sensei.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js",
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
