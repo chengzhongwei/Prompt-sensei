@@ -312,7 +312,9 @@ node ~/.claude/skills/prompt-sensei/dist/scripts/report.js
 
 Display the output verbatim — it is already formatted as Markdown.
 
-If no session data exists, say: "No session data found. Activate observation with `/prompt-sensei observe` to start tracking."
+If no event file exists, say: "No session data found. Activate observation with `/prompt-sensei observe` to start tracking."
+
+If the event file exists but only has session-start events in the selected report window, say that the session started but no prompts have been scored yet. Do not tell the user to activate observation again.
 
 ---
 

@@ -96,6 +96,29 @@ function loadEvents(days: number): PromptEvent[] {
   return events;
 }
 
+function hasSessionStart(days: number): boolean {
+  if (!existsSync(EVENTS_FILE)) return false;
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  const lines = readFileSync(EVENTS_FILE, "utf8")
+    .split("\n")
+    .filter(Boolean);
+
+  for (const line of lines) {
+    try {
+      const event = JSON.parse(line) as PromptEvent;
+      if (event.type === "session-start" && new Date(event.ts) >= cutoff) {
+        return true;
+      }
+    } catch {
+      // skip malformed lines
+    }
+  }
+  return false;
+}
+
 function loadUpdateState(): UpdateState | null {
   if (!existsSync(UPDATE_FILE)) return null;
   try {
@@ -289,10 +312,24 @@ function main(): void {
   const events = loadEvents(days);
 
   if (events.length === 0) {
-    console.log("No session data found.");
-    console.log(
-      "Activate observation with `/prompt-sensei observe` to start tracking."
-    );
+    if (!existsSync(EVENTS_FILE)) {
+      console.log("No session data found.");
+      console.log(
+        "Activate observation with `/prompt-sensei observe` to start tracking."
+      );
+    } else if (hasSessionStart(days)) {
+      console.log("# Prompt Sensei Report");
+      console.log(`Session started, but no prompts have been scored in the last ${days} days.`);
+      console.log(
+        "Keep prompting — scores will appear here after the first observed prompt."
+      );
+    } else {
+      console.log("# Prompt Sensei Report");
+      console.log(`No prompt observations found in the last ${days} days.`);
+      console.log(
+        "Use `/prompt-sensei observe` to start a new scored session."
+      );
+    }
     printUpdateNotice();
     return;
   }
