@@ -2,6 +2,8 @@
 
 > A quiet, local-first prompt mentor for engineers using AI coding tools.
 
+[中文说明](README-zh.md)
+
 Prompt Sensei helps developers improve their AI prompts over time with gentle, stage-aware feedback.
 
 It is not a leaderboard.
@@ -231,13 +233,12 @@ fix this test
 
 ```
 Prompt stage:    Exploration
-Score:           2.0 / 5  (as execution-ready)
-                 3.5 / 5  (as exploration)
+Score:           70 / 100  (Good for Exploration)
 
 What is good:
   You clearly indicated you need debugging help.
 
-What is missing:
+What is missing for execution:
   - failing test output
   - expected behavior
   - actual behavior
