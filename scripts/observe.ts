@@ -19,10 +19,12 @@ import { mkdirSync, appendFileSync, writeFileSync, existsSync, readFileSync } fr
 import { join } from "path";
 import { homedir } from "os";
 import * as readline from "readline";
+import { spawn } from "child_process";
 
 const DATA_DIR = join(homedir(), ".prompt-sensei");
 const EVENTS_FILE = join(DATA_DIR, "events.jsonl");
 const CONFIG_FILE = join(DATA_DIR, "config.json");
+const UPDATE_SCRIPT = join(__dirname, "update.js");
 
 // Patterns for redacting sensitive data before hashing
 const REDACT_PATTERNS: Array<[RegExp, string]> = [
@@ -107,6 +109,21 @@ function appendEvent(event: PromptEvent): void {
   appendFileSync(EVENTS_FILE, JSON.stringify(event) + "\n", "utf8");
 }
 
+function runBackgroundUpdateCheck(): void {
+  if (process.env["PROMPT_SENSEI_DISABLE_UPDATE_CHECK"] === "1") return;
+  if (!existsSync(UPDATE_SCRIPT)) return;
+
+  try {
+    const child = spawn(process.execPath, [UPDATE_SCRIPT, "--check", "--quiet"], {
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+  } catch {
+    // Update checks are best-effort and must never block prompt observation.
+  }
+}
+
 async function readStdin(): Promise<string> {
   if (process.stdin.isTTY) return "";
   const rl = readline.createInterface({ input: process.stdin });
@@ -136,6 +153,7 @@ async function main(): Promise<void> {
         ts: new Date().toISOString(),
         type: "session-start",
       });
+      runBackgroundUpdateCheck();
       console.log(`Session started. Data: ${DATA_DIR}`);
       return;
     }
@@ -153,6 +171,7 @@ async function main(): Promise<void> {
     });
 
     console.log("Session started.");
+    runBackgroundUpdateCheck();
     return;
   }
 
@@ -163,6 +182,8 @@ async function main(): Promise<void> {
     );
     return;
   }
+
+  runBackgroundUpdateCheck();
 
   const hasObservationArgs =
     args["stage"] !== undefined ||

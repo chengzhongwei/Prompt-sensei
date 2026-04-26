@@ -24,7 +24,7 @@ Claude Code picks up skills in `~/.claude/skills/` automatically.
 ### Use as a Claude Code skill
 
 ```
-/prompt-sensei [observe|stop|report|review|help|clear]
+/prompt-sensei [observe|stop|report|review|help|clear|update]
 ```
 
 With no arguments, starts observation mode by default — scores your prompts quietly as you work.
@@ -34,6 +34,7 @@ With no arguments, starts observation mode by default — scores your prompts qu
 /prompt-sensei stop             # stop scoring this session
 /prompt-sensei review "help me fix this"
 /prompt-sensei report
+/prompt-sensei update
 /prompt-sensei help
 ```
 
@@ -88,6 +89,20 @@ Clear local data:
 ```bash
 npm run clear-data
 ```
+
+Check for updates:
+
+```bash
+npm run check-update
+```
+
+Apply updates:
+
+```bash
+npm run update
+```
+
+Prompt Sensei checks for updates in the background at most once per day during observe/report activity. It never auto-updates; it only tells you when a newer commit is available. Run `/prompt-sensei update` or `npm run update` to pull the latest version and rebuild.
 
 ---
 
@@ -348,6 +363,12 @@ To see your session statistics:
 /prompt-sensei report
 ```
 
+To update Prompt Sensei:
+
+```
+/prompt-sensei update
+```
+
 To clear local data:
 
 ```
@@ -432,6 +453,12 @@ Observed 18 prompts in the last 7 days.
 - diagnosis: 9 (50%)
 - execution: 6 (33%)
 - exploration: 3 (17%)
+
+## Update
+Update available on `main`.
+- Local: 65fb4ad
+- Remote: 31e4a5b
+- Run `/prompt-sensei update` to update.
 
 ## Feedback
 Your scores are trending upward. The practice is working.

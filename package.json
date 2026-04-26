@@ -7,6 +7,8 @@
     "build": "tsc",
     "observe": "node dist/scripts/observe.js",
     "report": "node dist/scripts/report.js",
+    "check-update": "node dist/scripts/update.js --check",
+    "update": "node dist/scripts/update.js --apply",
     "clear-data": "node dist/scripts/clear.js"
   },
   "devDependencies": {

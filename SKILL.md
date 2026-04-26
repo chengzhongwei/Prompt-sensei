@@ -1,7 +1,7 @@
 ---
 name: prompt-sensei
 description: Use when the user wants stage-aware prompt coaching, prompt scoring, prompt review, prompting habit feedback, or local reports about prompt quality for AI coding agents such as Claude Code or Codex.
-argument-hint: [observe|stop|report|review|help|clear]
+argument-hint: [observe|stop|report|review|help|clear|update]
 ---
 
 # Prompt Sensei
@@ -21,6 +21,7 @@ This skill is triggered by `/prompt-sensei`. Read the arguments the user provide
 - `/prompt-sensei review <prompt>` or `/prompt-sensei score <prompt>` — score a specific prompt and give feedback
 - `/prompt-sensei report` — run the report script and display session statistics
 - `/prompt-sensei clear` — run the clear script to delete session data
+- `/prompt-sensei update` — run the update script to pull the latest version and rebuild
 
 In Codex or other environments without slash-command support, treat natural-language requests such as "use prompt-sensei", "score this prompt", "review my prompt", or "show my prompt-sensei report" as equivalent invocations.
 
@@ -156,10 +157,12 @@ When the user activates `/prompt-sensei observe`:
        - A hash of your prompt (not the text itself)
        - Dimension scores
        - Lightweight feedback tags
+       - Cached update-check status
 
      I store nothing in the cloud. Raw prompt text is never saved by default.
      Data goes to: ~/.prompt-sensei/events.jsonl  (observation log)
                    ~/.prompt-sensei/config.json    (consent record, created once)
+                   ~/.prompt-sensei/update-check.json (cached update status)
      You can inspect or delete it anytime with /prompt-sensei clear
 
      Ready to begin? (yes / no)
@@ -189,6 +192,22 @@ When the user activates `/prompt-sensei observe`:
    ```
    > **[[Sensei: Score - 94/100; Excellent — execution-ready prompt]]()**
    ```
+
+---
+
+## Behavior in Update Mode
+
+When the user types `/prompt-sensei update`:
+
+1. Run the update script from the installed skill root:
+
+```bash
+node dist/scripts/update.js --apply
+```
+
+2. Display the script output. If the working tree has local changes, tell the user to commit, stash, or discard them before updating.
+
+Prompt Sensei also performs a best-effort background update check at most once per day during observe/report activity. It never auto-updates. If an update is available, reports should tell the user to run `/prompt-sensei update`.
 
 ---
 
@@ -281,6 +300,7 @@ Commands:
   /prompt-sensei stop                  Stop scoring for this session
   /prompt-sensei review "<prompt>"     Score and improve a specific prompt
   /prompt-sensei report                Show your session statistics
+  /prompt-sensei update                Pull the latest version and rebuild
   /prompt-sensei clear                 Delete local session data
   /prompt-sensei help                  Show this help
 

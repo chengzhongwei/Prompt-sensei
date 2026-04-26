@@ -9,9 +9,12 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
+import { spawn } from "child_process";
 
 const DATA_DIR = join(homedir(), ".prompt-sensei");
 const EVENTS_FILE = join(DATA_DIR, "events.jsonl");
+const UPDATE_FILE = join(DATA_DIR, "update-check.json");
+const UPDATE_SCRIPT = join(__dirname, "update.js");
 
 interface PromptEvent {
   v: number;
@@ -21,6 +24,15 @@ interface PromptEvent {
   taskType?: string;
   score?: number;
   flags?: string[];
+}
+
+interface UpdateState {
+  v: number;
+  checkedAt: string;
+  status: string;
+  branch?: string;
+  currentSha?: string;
+  remoteSha?: string;
 }
 
 interface CoachingNote {
@@ -82,6 +94,43 @@ function loadEvents(days: number): PromptEvent[] {
     }
   }
   return events;
+}
+
+function loadUpdateState(): UpdateState | null {
+  if (!existsSync(UPDATE_FILE)) return null;
+  try {
+    return JSON.parse(readFileSync(UPDATE_FILE, "utf8")) as UpdateState;
+  } catch {
+    return null;
+  }
+}
+
+function runBackgroundUpdateCheck(): void {
+  if (process.env["PROMPT_SENSEI_DISABLE_UPDATE_CHECK"] === "1") return;
+  if (!existsSync(UPDATE_SCRIPT)) return;
+
+  try {
+    const child = spawn(process.execPath, [UPDATE_SCRIPT, "--check", "--quiet"], {
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+  } catch {
+    // Reports should still work if update checks fail.
+  }
+}
+
+function printUpdateNotice(): void {
+  const state = loadUpdateState();
+  if (state?.status !== "update-available") return;
+
+  console.log("\n## Update");
+  console.log(`Update available on \`${state.branch ?? "current branch"}\`.`);
+  if (state.currentSha && state.remoteSha) {
+    console.log(`- Local: ${state.currentSha.slice(0, 7)}`);
+    console.log(`- Remote: ${state.remoteSha.slice(0, 7)}`);
+  }
+  console.log("- Run `/prompt-sensei update` to update.");
 }
 
 function avg(nums: number[]): number {
@@ -236,6 +285,7 @@ function main(): void {
   const daysArg = process.argv.find((a) => a.startsWith("--days="));
   const days = daysArg ? parseInt(daysArg.split("=")[1]!) : 7;
 
+  runBackgroundUpdateCheck();
   const events = loadEvents(days);
 
   if (events.length === 0) {
@@ -243,6 +293,7 @@ function main(): void {
     console.log(
       "Activate observation with `/prompt-sensei observe` to start tracking."
     );
+    printUpdateNotice();
     return;
   }
 
@@ -265,6 +316,7 @@ function main(): void {
     console.log(
       "Activate observation with `/prompt-sensei observe` to start receiving scored feedback."
     );
+    printUpdateNotice();
     return;
   }
 
@@ -352,6 +404,8 @@ function main(): void {
       console.log(`- ${stage}: ${count} (${pct}%)`);
     }
   }
+
+  printUpdateNotice();
 
   console.log("\n## Feedback");
   console.log(generateEncouragement(avgScore100, trend100, topTask, topFlags, taskGrowthAreas));

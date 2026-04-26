@@ -15,6 +15,7 @@ import * as readline from "readline";
 const DATA_DIR = join(homedir(), ".prompt-sensei");
 const EVENTS_FILE = join(DATA_DIR, "events.jsonl");
 const CONFIG_FILE = join(DATA_DIR, "config.json");
+const UPDATE_FILE = join(DATA_DIR, "update-check.json");
 
 function countEntries(): number {
   if (!existsSync(EVENTS_FILE)) return 0;
@@ -30,6 +31,12 @@ function deleteData(all: boolean): void {
     unlinkSync(EVENTS_FILE);
     deleted++;
     console.log(`Deleted: ${EVENTS_FILE}`);
+  }
+
+  if (existsSync(UPDATE_FILE)) {
+    unlinkSync(UPDATE_FILE);
+    deleted++;
+    console.log(`Deleted: ${UPDATE_FILE}`);
   }
 
   if (all && existsSync(CONFIG_FILE)) {

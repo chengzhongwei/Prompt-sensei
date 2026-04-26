@@ -28,6 +28,16 @@ When the optional Claude Code hook is enabled, it records hash-only captures aft
 | `type` | string | `"prompt-hashed"` |
 | `promptHash` | string | `"a3f1b2c4..."` |
 
+Prompt Sensei also stores cached update-check status when update checks run:
+
+| Field | Type | Example |
+|---|---|---|
+| `checkedAt` | string | `"2026-04-25T14:32:10Z"` |
+| `status` | string | `"update-available"` |
+| `branch` | string | `"main"` |
+| `currentSha` | string | `"65fb4ad..."` |
+| `remoteSha` | string | `"31e4a5b..."` |
+
 ---
 
 ## What is never stored
@@ -116,9 +126,13 @@ node dist/scripts/clear.js --all
 
 ---
 
-## No network calls
+## Network behavior
 
-Prompt Sensei contains no analytics, no error reporting, no usage tracking, and no network calls of any kind. The scripts are local Node.js executables. You can verify this by reading the source in `scripts/` — there are no HTTP clients, no `fetch` calls, and no third-party SDKs.
+Prompt Sensei contains no analytics, no error reporting, and no usage tracking. It makes no network calls for prompt observation or reporting.
+
+The only networked feature is update checking. At most once per day during observe/report activity, Prompt Sensei may run `git ls-remote` against the configured `origin` remote to compare the local commit with the remote branch. It stores only update status and commit SHAs in `~/.prompt-sensei/update-check.json`. It never sends prompt text, scores, reports, or local event data.
+
+Updates are never applied automatically. `/prompt-sensei update` runs `git pull --ff-only`, `npm install`, and `npm run build` only when the user explicitly requests it.
 
 ---
 
