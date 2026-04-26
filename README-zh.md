@@ -40,6 +40,46 @@ Use prompt-sensei to show my report.
 Use prompt-sensei observe for this session.
 ```
 
+### 推荐：开启本地 prompt 观察 hook
+
+安装后，如果你希望 Claude Code 在后台安静地记录本地 prompt metadata，可以把 `UserPromptSubmit` hook 加到 `~/.claude/settings.json`：
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --hash-only",
+        "async": true,
+        "timeout": 10
+      }
+    ]
+  }
+}
+```
+
+这个 hook 只会写入 redacted prompt hash，并且只有在你先运行 `/prompt-sensei observe` 同意之后才会写入。Hash-only 记录不会参与评分，因为 hook 没有足够的对话上下文来判断 prompt 阶段和 coaching tip。
+
+如果你的 Claude Code 版本支持 `Stop` hook，也可以添加一个响应结束后的 hash-only capture：
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --hash-only",
+        "async": true,
+        "timeout": 10
+      }
+    ]
+  }
+}
+```
+
+`Stop` hook 适合安静地记录后台 metadata，但不能替代 `/prompt-sensei observe` 的评分。Stage-aware feedback 仍然需要在对话中完成，因为只有 agent 有足够上下文判断 prompt 阶段并给出 coaching tip。
+
 ---
 
 ## 使用

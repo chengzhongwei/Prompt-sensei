@@ -59,9 +59,9 @@ Use prompt-sensei observe for this session.
 
 Codex can use the same rubric and local report scripts. Automatic per-message observation depends on the host app keeping the skill active in context; the Claude Code hook shown below is Claude-specific.
 
-### Optional: Enable local prompt observation
+### Recommended: Enable local prompt observation
 
-Add to your Claude Code settings (`~/.claude/settings.json`):
+After installation, add a `UserPromptSubmit` hook to your Claude Code settings (`~/.claude/settings.json`) if you want quiet local prompt captures in the background:
 
 ```json
 {
@@ -79,6 +79,25 @@ Add to your Claude Code settings (`~/.claude/settings.json`):
 ```
 
 The hook writes only a redacted prompt hash to `~/.prompt-sensei/events.jsonl`, and only after you have consented by running `/prompt-sensei observe` once. Hash-only hook captures are excluded from scoring because the hook does not have the conversation context needed for stage-aware feedback.
+
+If your Claude Code version supports `Stop` hooks, you can also add a post-response hash-only capture:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --hash-only",
+        "async": true,
+        "timeout": 10
+      }
+    ]
+  }
+}
+```
+
+The `Stop` hook is useful for quiet background metadata, but it does not replace `/prompt-sensei observe` scoring. Stage-aware feedback still happens in the conversation because only the agent has enough context to classify the prompt and choose the coaching tip.
 
 Generate a report:
 

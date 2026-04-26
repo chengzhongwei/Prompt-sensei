@@ -227,6 +227,7 @@ async function main(): Promise<void> {
     ...(flags.length > 0 && { flags }),
     ...(stdinText.trim() && { promptHash: hashPrompt(stdinText) }),
   });
+  console.log("Prompt observation recorded.");
 }
 
 main().catch((err) => {

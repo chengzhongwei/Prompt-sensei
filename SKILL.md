@@ -28,7 +28,7 @@ In Codex or other environments without slash-command support, treat natural-lang
 When running bundled scripts, use the installed skill root:
 - Claude Code default: `~/.claude/skills/prompt-sensei`
 - Codex default: `~/.codex/skills/prompt-sensei`
-- If the current working directory is the skill root, prefer `node dist/scripts/<script>.js`
+- In Claude Code, always call scripts by absolute path. Do not `cd` into the skill directory before running a script; Claude Code may reset the shell cwd and show a misleading warning.
 
 ---
 
@@ -168,13 +168,13 @@ When the user activates `/prompt-sensei observe`:
      Ready to begin? (yes / no)
      ```
    - Wait for the user to confirm before activating. If they say no, exit gracefully.
-   - On confirmation, run the observe init script from the installed skill root, for example `node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --init` or `node ~/.codex/skills/prompt-sensei/dist/scripts/observe.js --init`.
+   - On confirmation, run the observe init script by absolute path, for example `node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --init` or `node ~/.codex/skills/prompt-sensei/dist/scripts/observe.js --init`.
 
 3. After each subsequent user message this session:
    - Classify the prompt stage
    - Score it on the relevant dimensions
    - Convert the composite score (1–5) to a 100-point display score by multiplying by 20 and rounding to the nearest integer
-   - Run the observe script from the installed skill root with: `node dist/scripts/observe.js --stage <stage> --score <1-5-composite-score> --task-type <type> --flags <comma-separated-flags>`
+   - Run the observe script by absolute path, for example: `node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --stage <stage> --score <1-5-composite-score> --task-type <type> --flags <comma-separated-flags>`
    - Valid flags (include all that apply, omit the rest). **Omit `--flags` entirely for Action-stage prompts.**
      - `missing-context` — context completeness scored low
      - `no-constraints` — no constraints were stated
@@ -193,16 +193,56 @@ When the user activates `/prompt-sensei observe`:
    > **[[Sensei: Score - 94/100; Excellent — execution-ready prompt]]()**
    ```
 
+### Claude Code Hook Option
+
+For quiet background metadata in Claude Code, tell users to configure hooks in `~/.claude/settings.json` rather than relying only on visible Bash calls.
+
+`UserPromptSubmit` captures a hash-only prompt event:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --hash-only",
+        "async": true,
+        "timeout": 10
+      }
+    ]
+  }
+}
+```
+
+If the user's Claude Code version supports `Stop` hooks, they can also add:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --hash-only",
+        "async": true,
+        "timeout": 10
+      }
+    ]
+  }
+}
+```
+
+These hooks are hash-only. They do not replace scored `/prompt-sensei observe` feedback because hooks do not provide the prompt stage, score, task type, or coaching tip.
+
 ---
 
 ## Behavior in Update Mode
 
 When the user types `/prompt-sensei update`:
 
-1. Run the update script from the installed skill root:
+1. Run the update script by absolute path:
 
 ```bash
-node dist/scripts/update.js --apply
+node ~/.claude/skills/prompt-sensei/dist/scripts/update.js --apply
 ```
 
 2. Display the script output. If the working tree has local changes, tell the user to commit, stash, or discard them before updating.
@@ -267,7 +307,7 @@ Suggested rewrite:
 Run the report script:
 
 ```bash
-node dist/scripts/report.js
+node ~/.claude/skills/prompt-sensei/dist/scripts/report.js
 ```
 
 Display the output verbatim — it is already formatted as Markdown.
@@ -281,7 +321,7 @@ If no session data exists, say: "No session data found. Activate observation wit
 Run the clear script:
 
 ```bash
-node dist/scripts/clear.js
+node ~/.claude/skills/prompt-sensei/dist/scripts/clear.js
 ```
 
 Confirm what was deleted and how many entries were removed.
