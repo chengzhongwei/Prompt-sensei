@@ -20,7 +20,7 @@ When observation mode is active, Prompt Sensei records the following per prompt:
 
 **Raw prompt text is never stored by default.**
 
-When the optional Claude Code hook is enabled, it records hash-only captures after consent:
+When an optional Claude Code `UserPromptSubmit` or `Stop` hook is enabled, it records hash-only captures after consent:
 
 | Field | Type | Example |
 |---|---|---|

@@ -9,6 +9,7 @@ This project is a local-first prompt-coaching skill for AI coding agents. Keep c
 - Update `docs/privacy.md` for any storage, deletion, or network behavior changes.
 - Update `docs/scoring-rubric.md` when stage formulas, dimensions, flags, or score labels change.
 - Update `examples/debugging-journey.md` when scoring examples, report style, or recommended prompt patterns change.
+- Keep Claude Code hook snippets in `SKILL.md`, `README.md`, and `README-zh.md` consistent.
 
 ## Scripts
 
@@ -16,6 +17,7 @@ This project is a local-first prompt-coaching skill for AI coding agents. Keep c
 - Run `npm run build` after TypeScript changes.
 - Do not add network behavior except for explicit, documented update checks.
 - Do not store raw prompt text. Use metadata and redacted hashes only.
+- In `SKILL.md`, prefer absolute script paths for Claude Code examples, such as `node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js`, to avoid cwd-reset warnings.
 
 ## Validation
 
