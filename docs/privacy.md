@@ -38,6 +38,14 @@ Prompt Sensei also stores cached update-check status when update checks run:
 | `currentSha` | string | `"65fb4ad..."` |
 | `remoteSha` | string | `"31e4a5b..."` |
 
+When you explicitly choose to save a lookback report, Prompt Sensei stores the generated markdown report:
+
+| Field | Type | Example |
+|---|---|---|
+| Report file | Markdown | `~/.prompt-sensei/reports/2026-04-26T...-lookback.md` |
+
+Saved lookback reports are optional and are created only after confirmation.
+
 ---
 
 ## What is never stored
@@ -47,6 +55,9 @@ Prompt Sensei also stores cached update-check status when update checks run:
 - Code snippets from your prompts
 - File contents
 - Usernames, emails, or project identifiers
+- Raw lookback history
+- Lookback prompt hashes
+- Derived lookback metadata, unless you save a markdown report yourself
 
 ---
 
@@ -57,7 +68,9 @@ All data is written to `~/.prompt-sensei/events.jsonl` — a single newline-deli
 ```
 ~/.prompt-sensei/
 ├── events.jsonl    ← one JSON record per observed prompt
-└── config.json     ← consent status and preferences
+├── config.json     ← consent status and preferences
+├── update-check.json
+└── reports/        ← optional saved lookback reports
 ```
 
 This directory is **not** inside your project repo. It is in your home directory and will not be committed to version control.
@@ -69,6 +82,25 @@ This directory is **not** inside your project repo. It is in your home directory
 The first time you run `/prompt-sensei observe`, Prompt Sensei will show you exactly what it intends to store and ask for confirmation before writing anything. It will not activate observation mode without your explicit consent.
 
 Consent is stored in `~/.prompt-sensei/config.json`. The prompt only appears once.
+
+Lookback uses separate consent because it reads selected local conversation history before redaction. Observe consent does not automatically grant lookback permission.
+
+---
+
+## Lookback privacy
+
+When you run `/prompt-sensei lookback`, Prompt Sensei first discovers local Claude Code and Codex session files using metadata such as file paths, session IDs, titles when available, and file timestamps. It does not parse conversation files or extract prompt text during discovery. Before extracting prompts, it asks for explicit consent with the following guarantees:
+
+- Selected local history is read locally
+- User prompts are redacted before analysis
+- Redacted prompts may be shown to the current AI agent for coaching
+- Assistant responses are not analyzed
+- Raw history is not copied into `~/.prompt-sensei`
+- Raw prompt text, prompt hashes, and derived lookback metadata are not stored by default
+
+Lookback can optionally save the generated markdown report to `~/.prompt-sensei/reports/`, but only after you confirm. The report is written by Prompt Sensei on your machine and can be deleted at any time.
+
+Lookback does not make network calls itself. The active AI coding tool may process the redacted prompts according to that tool's normal model behavior.
 
 ---
 
@@ -117,6 +149,8 @@ rm -rf ~/.prompt-sensei/
 ```
 
 There is no account to close, no server to notify, and no backup to remove. Deleting the directory is a complete wipe.
+
+`/prompt-sensei clear` also deletes saved lookback reports under `~/.prompt-sensei/reports/`.
 
 To also reset consent (so the skill asks again on next use):
 

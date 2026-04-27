@@ -62,6 +62,8 @@ Prompt Sensei tracks trends, not one-off scores. A prompt that scores 50/100 is 
 
 The reports are designed to show movement, not rank. They separate scored observations from hash-only hook captures, and the most useful signal is the next habit to practice for the task type the user actually does. The goal is "Is the user learning?" not "Is this prompt good?"
 
+Lookback extends this idea to past sessions. It is not a surveillance feature or a transcript archive. It is a consent-based reflection tool: read selected local history, avoid storing raw prompts, identify repeated habits, and turn that history into a few concrete things to practice next.
+
 ---
 
 ## Privacy as a first principle

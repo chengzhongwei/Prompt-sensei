@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Delete local session data.
+ * Delete local Prompt Sensei data.
  * Usage: clear.js [--force] [--all]
  *
  * --force   Skip confirmation prompt
  * --all     Also delete config.json (resets consent)
  */
 
-import { existsSync, unlinkSync, readFileSync } from "fs";
+import { existsSync, unlinkSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import * as readline from "readline";
@@ -16,6 +16,7 @@ const DATA_DIR = join(homedir(), ".prompt-sensei");
 const EVENTS_FILE = join(DATA_DIR, "events.jsonl");
 const CONFIG_FILE = join(DATA_DIR, "config.json");
 const UPDATE_FILE = join(DATA_DIR, "update-check.json");
+const REPORTS_DIR = join(DATA_DIR, "reports");
 
 function countEntries(): number {
   if (!existsSync(EVENTS_FILE)) return 0;
@@ -37,6 +38,12 @@ function deleteData(all: boolean): void {
     unlinkSync(UPDATE_FILE);
     deleted++;
     console.log(`Deleted: ${UPDATE_FILE}`);
+  }
+
+  if (existsSync(REPORTS_DIR)) {
+    rmSync(REPORTS_DIR, { recursive: true, force: true });
+    deleted++;
+    console.log(`Deleted: ${REPORTS_DIR}`);
   }
 
   if (all && existsSync(CONFIG_FILE)) {
@@ -69,7 +76,12 @@ async function main(): Promise<void> {
 
   const entries = countEntries();
 
-  if (entries === 0 && !existsSync(CONFIG_FILE)) {
+  if (
+    entries === 0 &&
+    !existsSync(CONFIG_FILE) &&
+    !existsSync(UPDATE_FILE) &&
+    !existsSync(REPORTS_DIR)
+  ) {
     console.log("Nothing to clear — no session data found.");
     return;
   }
@@ -79,7 +91,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  const what = all ? "events and config (resets consent)" : "events";
+  const what = all
+    ? "events, update cache, saved reports, and config (resets consent)"
+    : "events, update cache, and saved reports";
   const ok = await confirm(
     `Delete ${entries} prompt entries (${what})? [y/N] `
   );

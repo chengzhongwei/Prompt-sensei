@@ -1,12 +1,14 @@
 {
   "name": "prompt-sensei",
-  "version": "0.2.0",
-  "description": "A quiet, local-first prompt mentor for engineers using AI coding tools",
+  "version": "0.3.0",
+  "description": "A quiet, local-first prompt mentor with improve, observe, report, and lookback workflows",
   "type": "commonjs",
   "scripts": {
     "build": "tsc",
+    "init": "node dist/scripts/observe.js --init",
     "observe": "node dist/scripts/observe.js",
     "report": "node dist/scripts/report.js",
+    "lookback": "node dist/scripts/lookback.js",
     "check-update": "node dist/scripts/update.js --check",
     "update": "node dist/scripts/update.js --apply",
     "clear-data": "node dist/scripts/clear.js"
@@ -25,6 +27,8 @@
     "ai-coding",
     "developer-tools",
     "prompt-coach",
+    "prompt-history",
+    "lookback",
     "local-first",
     "engineering-productivity",
     "ai-agents"
