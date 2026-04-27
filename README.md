@@ -4,7 +4,7 @@
 
 [中文说明](README-zh.md)
 
-Prompt Sensei is a quiet, local-first prompt coach for Claude Code and Codex. It gives stage-aware feedback, rewrites rough prompts into better ones, and helps you practice one habit at a time.
+Prompt Sensei is a quiet, local-first prompt coach for Claude Code and Codex, including IDE/plugin environments that can load those skills. It gives stage-aware feedback, rewrites rough prompts into better ones, looks back on local history when you ask, and helps you practice one habit at a time.
 
 No cloud. No telemetry. No leaderboard. No raw prompt archive.
 
@@ -33,6 +33,8 @@ git clone https://github.com/chengzhongwei/Prompt-sensei ~/.claude/skills/prompt
 (cd ~/.claude/skills/prompt-sensei && npm install && npm run build)
 ```
 
+Then start live coaching with `/prompt-sensei observe` inside Claude Code.
+
 Install for Codex:
 
 ```bash
@@ -40,7 +42,9 @@ git clone https://github.com/chengzhongwei/Prompt-sensei ~/.codex/skills/prompt-
 (cd ~/.codex/skills/prompt-sensei && npm install && npm run build)
 ```
 
-Start live coaching:
+Then ask Codex in natural language: `Use prompt-sensei observe mode.`
+
+Start live coaching in Claude Code:
 
 ```txt
 /prompt-sensei observe
@@ -86,16 +90,32 @@ See [examples/prompt-gallery.md](examples/prompt-gallery.md) for more copyable b
 
 ---
 
+## Supported Environments
+
+Prompt Sensei works best when the host tool can load the skill directly.
+
+| Invocation style | Environments |
+|---|---|
+| Direct skill command, e.g. `/prompt-sensei improve "fix this test"` | Claude Code and compatible Claude Code skill environments |
+| Natural language, e.g. `Use prompt-sensei to improve this prompt...` | Codex and IDE/plugin environments where slash commands are not available |
+
+If Claude Code or Codex is running inside an IDE plugin and can access the installed skill, use the same Prompt Sensei workflow there.
+
+`/prompt-sensei observe` is a Claude Code skill command. In Codex and other hosts without slash commands, natural-language requests depend on the host agent loading the installed skill. `npm run init` only creates Prompt Sensei's local consent/session record; it does not turn on live coaching by itself.
+
+---
+
 ## Commands
 
 ```txt
-/prompt-sensei [observe|stop|improve|report|help|clear|update]
+/prompt-sensei [observe|stop|improve|lookback|report|help|clear|update]
 ```
 
 ```txt
 /prompt-sensei observe              # start live coaching
 /prompt-sensei stop                 # stop coaching this session
 /prompt-sensei improve "fix this"   # rewrite a prompt with one teaching note
+/prompt-sensei lookback             # analyze selected local prompt history
 /prompt-sensei report               # show local session trends
 /prompt-sensei update               # pull latest version and rebuild
 /prompt-sensei clear                # delete local Prompt Sensei data
@@ -105,8 +125,17 @@ See [examples/prompt-gallery.md](examples/prompt-gallery.md) for more copyable b
 For Codex, use natural language:
 
 ```txt
+Use prompt-sensei observe mode.
 Use prompt-sensei to improve this prompt: "fix this test"
+Use prompt-sensei to look back at my recent prompts.
 Use prompt-sensei to show my report.
+```
+
+For direct script checks:
+
+```bash
+npm run init       # create local consent/session records
+npm run observe    # show observe-script usage when run interactively
 ```
 
 ---
@@ -137,6 +166,23 @@ Next habit:       End prompts with the exact test command or edge cases.
 ```
 
 For the full philosophy, read [docs/philosophy.md](docs/philosophy.md). For scoring details, read [docs/scoring-rubric.md](docs/scoring-rubric.md).
+
+---
+
+## Lookback
+
+`/prompt-sensei lookback` analyzes selected local Claude Code or Codex history after separate consent.
+
+It can:
+
+- find recent Claude Code and Codex sessions
+- analyze one session or all sessions
+- generate one-by-one coaching or a full lookback report
+- save a markdown report only after confirmation
+
+The flow is guided one step at a time: choose from a visible session list, choose the analysis format, choose the prompt count, then confirm consent.
+
+Lookback reads raw history locally, redacts user prompts before analysis, and does not store raw history, prompt hashes, or derived metadata by default.
 
 ---
 
@@ -176,8 +222,9 @@ After consent, it stores local metadata only:
 - `~/.prompt-sensei/events.jsonl` — observation log
 - `~/.prompt-sensei/config.json` — consent record
 - `~/.prompt-sensei/update-check.json` — cached update status
+- `~/.prompt-sensei/reports/` — optional saved lookback reports
 
-It does not store raw prompt text by default, and it never sends prompt text, scores, reports, or local event data to a service.
+Prompt Sensei's local scripts do not send prompt text, scores, reports, or local event data to a service. Lookback may show redacted user prompts to the current AI agent after separate consent.
 
 See [docs/privacy.md](docs/privacy.md) for details.
 
