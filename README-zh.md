@@ -33,6 +33,8 @@ git clone https://github.com/chengzhongwei/Prompt-sensei ~/.claude/skills/prompt
 (cd ~/.claude/skills/prompt-sensei && npm install && npm run build)
 ```
 
+然后在 Claude Code 里用 `/prompt-sensei observe` 启动实时反馈。
+
 安装到 Codex：
 
 ```bash
@@ -40,7 +42,9 @@ git clone https://github.com/chengzhongwei/Prompt-sensei ~/.codex/skills/prompt-
 (cd ~/.codex/skills/prompt-sensei && npm install && npm run build)
 ```
 
-启动实时反馈：
+然后用自然语言告诉 Codex：`Use prompt-sensei observe mode.`
+
+在 Claude Code 里启动实时反馈：
 
 ```txt
 /prompt-sensei observe
@@ -97,6 +101,8 @@ Prompt Sensei 最适合在能直接加载 skill 的工具里使用。
 
 如果 Claude Code 或 Codex 是在 IDE plugin 里运行，只要它能访问已安装的 skill，就可以使用同一套 Prompt Sensei 工作流。
 
+`/prompt-sensei observe` 是 Claude Code 的 skill 命令。在 Codex 或其他不支持 slash command 的环境里，要用自然语言触发，而且效果取决于当前 agent 是否加载到了这个 skill。`npm run init` 只会创建本地授权和会话记录，不会自动让 agent 开始追加实时评分。
+
 ---
 
 ## 命令
@@ -119,9 +125,17 @@ Prompt Sensei 最适合在能直接加载 skill 的工具里使用。
 在 Codex 里可以用自然语言触发：
 
 ```txt
+Use prompt-sensei observe mode.
 Use prompt-sensei to improve this prompt: "fix this test"
 Use prompt-sensei to look back at my recent prompts.
 Use prompt-sensei to show my report.
+```
+
+如果只是检查本地脚本：
+
+```bash
+npm run init       # 创建本地授权和会话记录
+npm run observe    # 交互式运行时显示 observe 脚本用法
 ```
 
 ---
@@ -165,6 +179,8 @@ Next habit:       End prompts with the exact test command or edge cases.
 - 分析单个会话或全部会话
 - 生成逐条反馈或完整回顾报告
 - 在你确认后保存 markdown 报告
+
+流程会一步一步引导你选择：先从可见的会话列表里选择，再选分析形式，再选 prompt 数量，最后确认授权。
 
 Lookback 只会在本地读取历史，先脱敏再交给当前 AI agent 分析。默认不保存原始历史、不保存 prompt hash，也不把分析结果写入普通 report 数据。
 

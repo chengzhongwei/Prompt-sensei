@@ -64,6 +64,11 @@ interface SessionSummary {
   lastTs?: string;
 }
 
+interface PromptSelection {
+  selected: PromptRecord[];
+  skippedLowSignal: number;
+}
+
 function parseArgs(argv: string[]): Args {
   const result: Args = {};
   for (let i = 2; i < argv.length; i++) {
@@ -172,6 +177,26 @@ function isLikelyUserPrompt(text: string): boolean {
   if (trimmed.startsWith("<user_editable_context>")) return false;
   if (trimmed.startsWith("<local-command-")) return false;
   return true;
+}
+
+function isLowSignalPrompt(text: string): boolean {
+  const trimmed = text.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (!trimmed) return true;
+  if (/<command-name>[\s\S]*<\/command-name>/i.test(trimmed)) return true;
+  if (/<command-message>[\s\S]*<\/command-message>/i.test(trimmed)) return true;
+  if (/^\/prompt-sensei\b/i.test(trimmed)) return true;
+  if (/^just reply\b/i.test(trimmed)) return true;
+  if (/^reply (with )?["']?(ok|yes|no)["']?/i.test(trimmed)) return true;
+  if (/^let'?s do\b/i.test(trimmed) && /\b(one-by-one|report|all|manual|[0-9]+)\b/i.test(trimmed)) return true;
+  if (/^(y|yes|n|no|ok|okay|sure|continue|go ahead|proceed|confirm)$/i.test(trimmed)) return true;
+  if (/^(all|manual|one-by-one|report)$/i.test(trimmed)) return true;
+  if (/^[0-9]+$/.test(trimmed)) return true;
+  if (/^[aam]$/i.test(trimmed)) return true;
+  if (trimmed.startsWith("This session is being continued from a previous conversation that ran out of context.")) return true;
+  if (trimmed.startsWith("Summary:") && lower.includes("primary request and intent")) return true;
+  return false;
 }
 
 function normalizeTimestamp(value: unknown, fallbackPath: string): string {
@@ -389,15 +414,23 @@ function truncate(text: string, maxChars: number): string {
   return `${text.slice(0, maxChars).trimEnd()}\n[TRUNCATED]`;
 }
 
-function selectRecentPrompts(prompts: PromptRecord[], limit: number): PromptRecord[] {
-  return [...prompts]
+function selectRecentPrompts(prompts: PromptRecord[], limit: number): PromptSelection {
+  const candidates = [...prompts]
     .sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime())
-    .slice(0, limit)
+    .slice(0, limit);
+  const selected = candidates
+    .filter((prompt) => !isLowSignalPrompt(prompt.text))
     .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+
+  return {
+    selected,
+    skippedLowSignal: candidates.length - selected.length,
+  };
 }
 
 function printAnalysisPack(prompts: PromptRecord[], mode: Mode, requestedLimit: string | undefined, maxChars: number): void {
-  const selected = selectRecentPrompts(prompts, parseLimit(requestedLimit));
+  const selection = selectRecentPrompts(prompts, parseLimit(requestedLimit));
+  const { selected, skippedLowSignal } = selection;
   const total = prompts.length;
   const limitLabel = requestedLimit ?? String(DEFAULT_PROMPT_LIMIT);
   const capped = requestedLimit === "all" && total > MAX_PROMPT_LIMIT;
@@ -406,6 +439,10 @@ function printAnalysisPack(prompts: PromptRecord[], mode: Mode, requestedLimit: 
   console.log(`Mode: ${mode}`);
   console.log(`Selected prompts: ${selected.length} of ${total}`);
   console.log(`Selection: most recent ${limitLabel}, shown oldest to newest`);
+  if (skippedLowSignal > 0) {
+    console.log(`Skipped low-signal prompts: ${skippedLowSignal}`);
+    console.log("[Sensei: skipped grading for low-signal prompt]");
+  }
   if (capped) {
     console.log(`Limit note: "all" was capped at ${MAX_PROMPT_LIMIT} prompts.`);
   }

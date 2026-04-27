@@ -33,6 +33,8 @@ git clone https://github.com/chengzhongwei/Prompt-sensei ~/.claude/skills/prompt
 (cd ~/.claude/skills/prompt-sensei && npm install && npm run build)
 ```
 
+Then start live coaching with `/prompt-sensei observe` inside Claude Code.
+
 Install for Codex:
 
 ```bash
@@ -40,7 +42,9 @@ git clone https://github.com/chengzhongwei/Prompt-sensei ~/.codex/skills/prompt-
 (cd ~/.codex/skills/prompt-sensei && npm install && npm run build)
 ```
 
-Start live coaching:
+Then ask Codex in natural language: `Use prompt-sensei observe mode.`
+
+Start live coaching in Claude Code:
 
 ```txt
 /prompt-sensei observe
@@ -97,6 +101,8 @@ Prompt Sensei works best when the host tool can load the skill directly.
 
 If Claude Code or Codex is running inside an IDE plugin and can access the installed skill, use the same Prompt Sensei workflow there.
 
+`/prompt-sensei observe` is a Claude Code skill command. In Codex and other hosts without slash commands, natural-language requests depend on the host agent loading the installed skill. `npm run init` only creates Prompt Sensei's local consent/session record; it does not turn on live coaching by itself.
+
 ---
 
 ## Commands
@@ -119,9 +125,17 @@ If Claude Code or Codex is running inside an IDE plugin and can access the insta
 For Codex, use natural language:
 
 ```txt
+Use prompt-sensei observe mode.
 Use prompt-sensei to improve this prompt: "fix this test"
 Use prompt-sensei to look back at my recent prompts.
 Use prompt-sensei to show my report.
+```
+
+For direct script checks:
+
+```bash
+npm run init       # create local consent/session records
+npm run observe    # show observe-script usage when run interactively
 ```
 
 ---
@@ -165,6 +179,8 @@ It can:
 - analyze one session or all sessions
 - generate one-by-one coaching or a full lookback report
 - save a markdown report only after confirmation
+
+The flow is guided one step at a time: choose from a visible session list, choose the analysis format, choose the prompt count, then confirm consent.
 
 Lookback reads raw history locally, redacts user prompts before analysis, and does not store raw history, prompt hashes, or derived metadata by default.
 

@@ -72,6 +72,24 @@ function parseArgs(argv: string[]): Record<string, string | boolean> {
   return result;
 }
 
+function printInteractiveHelp(): void {
+  console.log(`Prompt Sensei Observe
+
+This command records local observation metadata. It does not start live coaching by itself.
+
+Use one of:
+  npm run init
+  node dist/scripts/observe.js --init
+  node dist/scripts/observe.js --stage execution --score 4 --task-type debugging
+
+In Claude Code, start live coaching with:
+  /prompt-sensei observe
+
+In Codex or other hosts without slash commands, ask the agent:
+  Use prompt-sensei observe mode.
+`);
+}
+
 interface Config {
   v: number;
   consentGiven: boolean;
@@ -136,6 +154,11 @@ async function readStdin(): Promise<string> {
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv);
+
+  if (process.argv.length <= 2 && process.stdin.isTTY) {
+    printInteractiveHelp();
+    return;
+  }
 
   if (args["init"] === true) {
     const config = loadConfig();
