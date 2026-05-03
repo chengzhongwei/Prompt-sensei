@@ -210,5 +210,26 @@
     "expectedFlags": ["privacy-risk"],
     "expectedTipTheme": "redact personal data before analysis",
     "notes": "This is not a secret-token case, but it still contains unnecessary personal data."
+  },
+  {
+    "id": "short-factual-question-001",
+    "category": "coding-agent",
+    "prompt": "how many files are changed locally",
+    "expectedStage": "Exploration",
+    "acceptableStages": ["Exploration", "Action"],
+    "expectedScoreBand": "70-90",
+    "expectedFlags": [],
+    "expectedTipTheme": "score this as a genuine factual question, not low-signal; tip can mention tracked vs untracked scope",
+    "notes": "Regression fixture: short factual questions must be scored even when the user asks for a terse answer."
+  },
+  {
+    "id": "good-score-needs-tip-001",
+    "category": "coding-agent",
+    "prompt": "Review the auth changes for bugs and missing tests. Focus on src/auth and return findings first.",
+    "expectedStage": "Verification",
+    "expectedScoreBand": "70-89",
+    "expectedFlags": ["missing-input-boundaries"],
+    "expectedTipTheme": "must include a concrete Tip, not only the label Good — minor gaps",
+    "notes": "Regression fixture: scores below 90 may use the Good label, but the final Sensei line still needs `Tip:` with a concrete next habit."
   }
 ]

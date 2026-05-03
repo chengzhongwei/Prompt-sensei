@@ -1,6 +1,6 @@
 {
   "name": "prompt-sensei",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A quiet, local-first prompt mentor with improve, observe, report, and lookback workflows",
   "type": "commonjs",
   "scripts": {
@@ -9,6 +9,12 @@
     "observe": "node dist/scripts/observe.js",
     "report": "node dist/scripts/report.js",
     "lookback": "node dist/scripts/lookback.js",
+    "settings": "node dist/scripts/settings.js",
+    "setup-hooks": "node dist/scripts/setup-hooks.js",
+    "sync-codex-install": "node dist/scripts/sync-codex-install.js",
+    "session-start": "node dist/scripts/session-start.js",
+    "stop": "node dist/scripts/stop.js",
+    "pre-compact": "node dist/scripts/pre-compact.js",
     "eval": "node dist/scripts/eval.js",
     "check-update": "node dist/scripts/update.js --check",
     "update": "node dist/scripts/update.js --apply",
