@@ -241,3 +241,5 @@ Canonical tip kinds:
 | `state-decision-criteria` | A planning prompt needs criteria for comparing options |
 
 Reports use tip kinds to show repeated habits over time. They are stored as local metadata, but they are not shown in the normal Sensei line.
+
+In observe mode, choose the canonical tip kind before writing the visible tip. The visible `Tip:` should use the matching habit phrase, or a close paraphrase with the same keywords, so Claude Code's Stop hook can infer and persist `tipKind` from the final Sensei line.

@@ -89,7 +89,21 @@ Choose the most useful next habit, not mechanically the lowest dimension. Apply 
 - Code review/verification: diff or file scope outranks response polish.
 - Planning/documentation: decision criteria, audience, and context outrank engineering-only details.
 
-Use a `tipKind` when recording below-90 feedback: `clarify-goal`, `add-context-evidence`, `add-expected-actual`, `add-error-output`, `name-file-or-function`, `add-scope-boundary`, `add-output-format`, `add-verification-command`, `redact-sensitive-data`, `add-safety-check`, or `state-decision-criteria`.
+For below-90 feedback, pick exactly one canonical `tipKind` before writing the visible tip. Use the matching habit phrase below, or a very close paraphrase that keeps the same keywords. Free-form tips may not persist `tipKind` in hook-recorded events.
+
+| tipKind | Visible tip phrase |
+|---|---|
+| `clarify-goal` | name the exact outcome you want before adding details |
+| `add-context-evidence` | add the evidence that makes the problem diagnosable |
+| `add-expected-actual` | add expected behavior and actual behavior before asking for a fix |
+| `add-error-output` | paste the exact error output or failing assertion when it is safe |
+| `name-file-or-function` | name the file, function, command, or diff the agent should focus on |
+| `add-scope-boundary` | add one boundary such as no new dependencies, minimal diff, or no API changes |
+| `add-output-format` | ask for the response shape that will make the answer easiest to review |
+| `add-verification-command` | end with the command, test, or edge case that proves the work |
+| `redact-sensitive-data` | replace secrets, personal data, and private URLs with labeled placeholders |
+| `add-safety-check` | add confirmation, rollback, or dry-run steps before risky operations |
+| `state-decision-criteria` | state the criteria the agent should use to compare options |
 
 ## Observe
 
@@ -116,7 +130,7 @@ For each later normal user prompt while observe mode is active:
    ```
    > **[[Sensei: skipped grading for low-signal prompt]]()**
    ```
-2. Otherwise classify stage, score applicable dimensions, and choose one concrete tip for the most useful next habit by stage and task type.
+2. Otherwise classify stage, score applicable dimensions, choose one canonical `tipKind`, and write the visible tip from that `tipKind`'s habit phrase.
 3. Record the observation:
    ```bash
    node <skill-root>/dist/scripts/observe.js --stage <stage> --score <1-5-composite> --task-type <type> --flags <comma-separated-flags> --tip-kind <tipKind>

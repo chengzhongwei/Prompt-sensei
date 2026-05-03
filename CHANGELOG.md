@@ -2,6 +2,14 @@
 
 All notable changes to Prompt Sensei are documented here.
 
+## 0.5.1 - 2026-05-03
+
+### Fixed
+
+- Strengthened observe-mode guidance so agents pick a canonical `tipKind` before writing below-90 tips.
+- Updated Claude Code auto-start context so hook-recorded sessions preserve `tipKind` more consistently.
+- Broadened Stop-hook tip inference for common free-form tip wording such as complete-sentence, exact-output, repository, validation, and audience guidance.
+
 ## 0.5.0 - 2026-05-03
 
 ### Added

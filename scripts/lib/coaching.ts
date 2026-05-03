@@ -306,7 +306,7 @@ export function selectTipKind(
 
 export function inferTipKindFromText(text: string): TipKind | null {
   const value = text.toLowerCase();
-  if (/\b(redact|secret|token|password|private url|personal data|email)\b/.test(value)) {
+  if (/\b(redact|placeholder|sanitize|secret|token|password|credential|private url|personal data|email)\b/.test(value)) {
     return "redact-sensitive-data";
   }
   if (/\b(confirm|rollback|dry[- ]run|destructive|force[- ]push|delete|safety)\b/.test(value)) {
@@ -315,28 +315,28 @@ export function inferTipKindFromText(text: string): TipKind | null {
   if (/\b(expected|actual)\b/.test(value)) {
     return "add-expected-actual";
   }
-  if (/\b(error|stack trace|failing assertion|log output)\b/.test(value)) {
+  if (/\b(error|stack trace|traceback|exception|failing assertion|failure output|log output|exact output)\b/.test(value)) {
     return "add-error-output";
   }
-  if (/\b(file|function|line|diff|branch|path|scope|focus)\b/.test(value)) {
+  if (/\b(test command|build command|verify|verification|edge case|prove|check|validate|run tests?)\b/.test(value)) {
+    return "add-verification-command";
+  }
+  if (/\b(file|function|method|class|line|diff|branch|repo|repository|path|command|focus)\b/.test(value)) {
     return "name-file-or-function";
   }
   if (/\b(constraint|boundary|do not|don't|dependency|minimal diff|public api)\b/.test(value)) {
     return "add-scope-boundary";
   }
-  if (/\b(test command|verify|verification|edge case|prove|check)\b/.test(value)) {
-    return "add-verification-command";
-  }
-  if (/\b(return|format|structure|findings first|summary)\b/.test(value)) {
+  if (/\b(return|format|structure|findings first|summary|response shape|answer shape)\b/.test(value)) {
     return "add-output-format";
   }
-  if (/\b(criteria|tradeoff|compare|decision)\b/.test(value)) {
+  if (/\b(criteria|tradeoff|compare|decision|audience|option|pros?|cons?)\b/.test(value)) {
     return "state-decision-criteria";
   }
-  if (/\b(goal|outcome|intent|action)\b/.test(value)) {
+  if (/\b(goal|outcome|intent|action|complete sentence|specific concern|specific ask|what you want)\b/.test(value)) {
     return "clarify-goal";
   }
-  if (/\b(context|evidence|recent change|background|repro)\b/.test(value)) {
+  if (/\b(context|evidence|recent change|background|repro|reproduction|symptom|observation|what changed)\b/.test(value)) {
     return "add-context-evidence";
   }
   return null;
