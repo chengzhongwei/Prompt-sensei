@@ -5,7 +5,7 @@
  * Usage:
  *   observe.js --init
  *   observe.js --hash-only
- *   observe.js --stage execution --score 3.8 --task-type debugging --flags missing-context,no-constraints
+ *   observe.js --stage execution --score 3.8 --task-type debugging --flags missing-context,no-constraints --tip-kind name-file-or-function
  *
  * Raw prompt text is never stored. Only metadata: timestamp, stage, task type,
  * score, and lightweight flags. A SHA-256 hash of the prompt may be stored
@@ -27,6 +27,7 @@ import {
   loadSettings,
   saveSettings,
 } from "./lib/settings";
+import { normalizeTipKind, selectTipKind, type TipKind } from "./lib/coaching";
 
 const UPDATE_SCRIPT = join(__dirname, "update.js");
 
@@ -56,12 +57,12 @@ This command records local observation metadata. It does not start live coaching
 Use one of:
   npm run init
   node dist/scripts/observe.js --init
-  node dist/scripts/observe.js --stage execution --score 4 --task-type debugging
+  node dist/scripts/observe.js --stage execution --score 4 --task-type debugging --tip-kind add-verification-command
 
 In Claude Code, start live coaching with:
   /prompt-sensei observe
 
-In Codex or other hosts without slash commands, ask the agent:
+In Codex, ask the agent:
   Use prompt-sensei observe mode.
 `);
 }
@@ -79,13 +80,14 @@ function saveConfig(config: Config): void {
 }
 
 interface PromptEvent {
-  v: 1;
+  v: 1 | 2;
   ts: string;
   type: "session-start" | "prompt-observed" | "prompt-hashed";
   stage?: string;
   taskType?: string;
   score?: number;
   flags?: string[];
+  tipKind?: TipKind;
   promptHash?: string;
   redactedPromptPreview?: string;
 }
@@ -182,7 +184,8 @@ async function main(): Promise<void> {
     args["stage"] !== undefined ||
     args["score"] !== undefined ||
     args["task-type"] !== undefined ||
-    args["flags"] !== undefined;
+    args["flags"] !== undefined ||
+    args["tip-kind"] !== undefined;
   const hashOnly = args["hash-only"] === true || !hasObservationArgs;
   const stdinText = await readStdin();
   const promptText = promptTextFromStdin(stdinText);
@@ -206,6 +209,8 @@ async function main(): Promise<void> {
   const taskType = args["task-type"] ? String(args["task-type"]) : "other";
   const flagsRaw = args["flags"] ? String(args["flags"]) : "";
   const flags = flagsRaw ? flagsRaw.split(",").map((f) => f.trim()).filter(Boolean) : [];
+  const explicitTipKind = normalizeTipKind(args["tip-kind"] ? String(args["tip-kind"]) : undefined);
+  const tipKind = explicitTipKind ?? selectTipKind(flags, stage, taskType);
 
   if (score !== undefined && (isNaN(score) || score < 1 || score > 5)) {
     process.stderr.write("Error: --score must be between 1 and 5\n");
@@ -213,13 +218,14 @@ async function main(): Promise<void> {
   }
 
   appendEvent({
-    v: 1,
+    v: 2,
     ts: new Date().toISOString(),
     type: "prompt-observed",
     stage,
     taskType,
     ...(score !== undefined && { score }),
     ...(flags.length > 0 && { flags }),
+    ...(tipKind && { tipKind }),
     ...(promptText.trim() && { promptHash: hashPrompt(promptText) }),
     ...(promptText.trim() &&
       settings.saveRedactedPrompts && { redactedPromptPreview: redactedPromptPreview(promptText) }),

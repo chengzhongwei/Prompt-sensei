@@ -9,6 +9,7 @@ This project is a local-first prompt-coaching skill for AI coding agents. Keep c
 - Move low-frequency or advanced details into focused docs:
   - `docs/skill-flows.md` for agent-facing setup, settings, hooks, and lookback flow details.
   - `docs/advanced-setup.md` and `docs/advanced-setup-zh.md` for user-facing advanced configuration.
+  - `docs/faq.md` for skeptical questions, usefulness claims, support scope, feedback channels, and quick public-facing answers.
   - `docs/privacy.md` for storage, consent, redaction, deletion, and network behavior.
   - `examples/claude-settings.example.json` for copyable Claude Code hook JSON.
 - Prefer short links from `SKILL.md` and README files to those deeper docs instead of duplicating the same instructions.
@@ -18,18 +19,36 @@ This project is a local-first prompt-coaching skill for AI coding agents. Keep c
 
 ## When Changing Behavior
 
+Treat behavior changes as cross-file changes by default. Before finalizing, do a related-file sweep; do not rely only on the file you initially touched or the checklist below.
+
 - Update `SKILL.md` when command behavior, scoring behavior, consent, storage, lookback, update checks, or report output changes.
 - Update `docs/skill-flows.md` when setup, settings, hook, or lookback agent workflow details change.
 - Update both `README.md` and `README-zh.md` for user-facing behavior, install steps, essential command lists, examples, and privacy notes.
 - Update `docs/advanced-setup.md` and `docs/advanced-setup-zh.md` for user-facing advanced settings, hook setup, Codex sync, or optional storage behavior.
 - Update `docs/privacy.md` for any storage, deletion, or network behavior changes.
-- Update `docs/scoring-rubric.md` when stage formulas, dimensions, flags, or score labels change.
+- Update `docs/scoring-rubric.md` when stage formulas, dimensions, flags, tip kinds, tip priority rules, or score labels change.
+- Update `docs/philosophy.md` when product framing changes around scoring, reports, privacy, outcomes, or the teaching model.
+- Update `docs/faq.md` when support scope, privacy posture, usefulness claims, feedback channels, or common adoption objections change.
 - Update `examples/debugging-journey.md` when scoring examples, report style, or recommended prompt patterns change.
 - Update `examples/prompt-gallery.md` when improve-mode examples, copyable before/after prompts, or adoption examples change.
-- Update `eval/prompts.json` when scoring behavior, stage definitions, or teaching expectations change.
+- Update `eval/prompts.json` when scoring behavior, stage definitions, tip kinds, or teaching expectations change.
 - Keep Claude Code hook snippets in `examples/claude-settings.example.json` and reference them from docs. Do not duplicate full hook JSON in `SKILL.md` or README.
 - Keep the public command surface consistent across `SKILL.md`, `README.md`, `README-zh.md`, and examples. The public prompt-rewrite command is `/prompt-sensei improve`; legacy `review`/`score` wording should only appear as a redirect to `improve`.
 - Keep beginner and advanced paths separate: basic observe/improve/lookback should work without hook setup, while optional settings can live in advanced docs.
+
+## Related File Sweep
+
+For any change to scoring, tips, reports, privacy, consent, supported hosts, commands, hooks, or release positioning, run a targeted `rg` sweep before the final validation. Search for both the new term and the old behavior it replaces.
+
+Common sweep targets:
+
+- Command surface: `rg -n "observe|improve|lookback|report|settings|setup|clear|update|review|score" SKILL.md README.md README-zh.md docs examples scripts`
+- Scoring and coaching: `rg -n "score|scoring|rubric|dimension|flag|tip|tip kind|next habit|lowest|verification|stage" SKILL.md docs examples eval scripts`
+- Reports and storage: `rg -n "report|events.jsonl|prompt-observed|prompt-hashed|redacted|hash|storage|clear" README.md README-zh.md docs scripts`
+- Host support: `rg -n "Claude Code|Codex|Cursor|AI coding tools|hooks|auto-start|sync-codex" README.md README-zh.md SKILL.md docs scripts examples`
+- Release and public framing: `rg -n "0\\.[0-9]+|FAQ|privacy|guarantee|outcome|help|support" README.md README-zh.md CHANGELOG.md docs examples .github`
+
+After the sweep, update every affected surface together or explicitly note why a matching file does not need changes. For scoring or teaching changes, inspect at least `SKILL.md`, `docs/scoring-rubric.md`, `docs/philosophy.md`, `docs/faq.md`, `examples/debugging-journey.md`, `examples/prompt-gallery.md`, `eval/prompts.json`, `scripts/lib/coaching.ts`, `scripts/observe.ts`, `scripts/stop.ts`, and `scripts/report.ts`.
 
 ## Host Compatibility
 
@@ -89,6 +108,12 @@ For scoring or teaching-language changes, also run:
 
 ```bash
 npm run eval
+```
+
+When fixture metadata or eval output changes, also check the JSON path:
+
+```bash
+npm --silent run eval -- --json
 ```
 
 ## Release Notes

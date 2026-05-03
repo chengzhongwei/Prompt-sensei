@@ -4,7 +4,9 @@
 
 [English](README.md)
 
-Prompt Sensei 是一个面向 Claude Code 和 Codex 的本地优先 prompt 教练，也适用于能加载这些 skill 的 IDE/plugin 环境。它会根据你当前所处的阶段给反馈，把粗糙的 prompt 改成更可执行的版本，在你允许时回看本地历史，并帮助你一次练好一个习惯。
+[Quickstart](#5-分钟快速开始) · [FAQ](docs/faq.md) · [Privacy](docs/privacy.md) · [Examples](examples/prompt-gallery.md) · [Advanced setup](docs/advanced-setup-zh.md) · [Discussions](https://github.com/chengzhongwei/Prompt-sensei/discussions)
+
+Prompt Sensei 是一个面向 Claude Code 和 Codex 的本地优先 prompt 教练。它会根据你当前所处的阶段给反馈，把粗糙的 prompt 改成更可执行的版本，在你允许时回看本地历史，并帮助你一次练好一个习惯。
 
 没有云端服务。没有遥测。没有排行榜。默认不保存原始 prompt。
 
@@ -98,12 +100,10 @@ Prompt Sensei 最适合在能直接加载 skill 的工具里使用。
 
 | 使用方式 | 环境 |
 |---|---|
-| 直接用 skill 命令，例如 `/prompt-sensei improve "fix this test"` | Claude Code，以及兼容 Claude Code skill 的环境 |
-| 用自然语言触发，例如 `Use prompt-sensei to improve this prompt...` | Codex，以及不支持 slash command 的 IDE/plugin 环境 |
+| 直接用 skill 命令，例如 `/prompt-sensei improve "fix this test"` | Claude Code |
+| 用自然语言触发，例如 `Use prompt-sensei to improve this prompt...` | Codex |
 
-如果 Claude Code 或 Codex 是在 IDE plugin 里运行，只要它能访问已安装的 skill，就可以使用同一套 Prompt Sensei 工作流。
-
-`/prompt-sensei observe` 是 Claude Code 的 skill 命令。在 Codex 或其他不支持 slash command 的环境里，要用自然语言触发，而且效果取决于当前 agent 是否加载到了这个 skill。`npm run init` 只会创建本地授权和会话记录，不会自动让 agent 开始追加实时评分。
+Cursor 和其他 AI coding tools 目前还不支持。`/prompt-sensei observe` 是 Claude Code 的 skill 命令。在 Codex 里，要用自然语言触发，而且效果取决于当前 agent 是否加载到了这个 skill。`npm run init` 只会创建本地授权和会话记录，不会自动让 agent 开始追加实时评分。
 
 ---
 
@@ -179,7 +179,7 @@ npm run sync-codex-install
 
 ---
 
-## v0.4 设置
+## v0.5 设置
 
 Prompt Sensei 会把本地偏好写入 `~/.prompt-sensei/settings.json`。默认保持安静：auto observe off、redacted prompt previews off、永远不保存原始 prompt。
 
@@ -209,9 +209,9 @@ Prompt Sensei 会先判断阶段。早期探索时，一句话可能已经足够
 报告关注的是成长，而不是排名：
 
 ```txt
-Average score:    81 / 100  (Good)
-Most common type: implementation
-Next habit:       End prompts with the exact test command or edge cases.
+Next habit:      End with the command, test, or edge case that proves the work.
+Repeated gap:    add-verification-command (5×)
+Average score:   81 / 100  (Good)
 ```
 
 完整理念见 [docs/philosophy.md](docs/philosophy.md)。评分细节见 [docs/scoring-rubric.md](docs/scoring-rubric.md)。

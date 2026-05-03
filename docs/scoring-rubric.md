@@ -1,6 +1,6 @@
 # Scoring Rubric
 
-Prompt Sensei scores prompts across seven dimensions, weighted by prompt stage. Not every dimension applies to every prompt — an exploration prompt is not a failed execution prompt.
+Prompt Sensei scores prompts across seven dimensions, with applicable dimensions chosen by prompt stage. Not every dimension applies to every prompt — an exploration prompt is not a failed execution prompt.
 
 ---
 
@@ -140,7 +140,7 @@ Did the user ask how to check correctness?
 | 5 | Names test file + edge cases + test command |
 
 **Before:** `implement the auth refresh`
-**After:** `Implement token refresh in src/auth/refresh.ts. Verification: run `npm test src/auth/refresh.test.ts` — all existing tests must pass. Include edge cases: expired token, missing token, concurrent refresh.`
+**After:** `Implement token refresh in src/auth/refresh.ts. Verification: run npm test src/auth/refresh.test.ts; all existing tests must pass. Include edge cases: expired token, missing token, concurrent refresh.`
 
 ---
 
@@ -209,3 +209,35 @@ Verification: How should correctness be checked?
 ```
 
 Not every prompt needs all six parts. Match depth to stage.
+
+---
+
+## Tip Selection
+
+The score and the tip are related but not identical. The score measures stage-relative readiness. The tip should choose the most useful next habit, not mechanically repeat the lowest-scoring dimension.
+
+Priority rules:
+
+- Privacy and safety issues outrank all prompt-structure feedback.
+- Debugging prompts should prioritize expected/actual behavior, exact errors, and reproduction evidence before output format.
+- Implementation and refactoring prompts should prioritize file boundaries, scope limits, and verification before response polish.
+- Code review and verification prompts should prioritize the diff, branch, file, or risk category being reviewed.
+- Planning and documentation prompts should prioritize audience, decision criteria, and useful return shape.
+
+Canonical tip kinds:
+
+| Tip kind | Use when |
+|---|---|
+| `clarify-goal` | The desired action or outcome is still fuzzy |
+| `add-context-evidence` | The prompt lacks background, recent changes, or evidence |
+| `add-expected-actual` | A debugging prompt needs expected vs. actual behavior |
+| `add-error-output` | A debugging prompt omits the exact error or failing assertion |
+| `name-file-or-function` | The agent needs clearer input boundaries |
+| `add-scope-boundary` | The prompt needs constraints such as no new dependencies or no API changes |
+| `add-output-format` | The answer would be easier to use with a return shape |
+| `add-verification-command` | The request needs a test, command, or edge case to prove correctness |
+| `redact-sensitive-data` | The prompt includes secrets, personal data, or private URLs |
+| `add-safety-check` | The request involves destructive or broad operations |
+| `state-decision-criteria` | A planning prompt needs criteria for comparing options |
+
+Reports use tip kinds to show repeated habits over time. They are stored as local metadata, but they are not shown in the normal Sensei line.

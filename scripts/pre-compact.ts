@@ -6,7 +6,7 @@
 import { appendFileSync } from "fs";
 import * as readline from "readline";
 import { EVENTS_FILE } from "./lib/paths";
-import { ensureDataDir, loadSettings } from "./lib/settings";
+import { ensureDataDir, hasObserveConsent, loadSettings } from "./lib/settings";
 
 interface CompactEvent {
   v: 1;
@@ -34,6 +34,9 @@ function appendEvent(event: CompactEvent): void {
 async function main(): Promise<void> {
   await readStdin();
   const settings = loadSettings();
+  if (!settings.autoObserve || !hasObserveConsent(settings)) {
+    return;
+  }
 
   appendEvent({
     v: 1,

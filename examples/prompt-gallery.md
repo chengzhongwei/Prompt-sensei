@@ -23,11 +23,12 @@ Test: [test name]
 Expected: [expected behavior]
 Actual: [error output or wrong behavior]
 Related file: [file path]
+Verification: [test command to run]
 
 Return:
 1. Root cause
 2. Minimal fix
-3. Test command
+3. Patch summary
 ```
 
 **Habit:** Add expected behavior and actual behavior before asking for a fix.
@@ -55,10 +56,13 @@ Constraints:
 - Prefer the smallest safe change
 - Do not add new dependencies unless necessary
 
+Verification:
+- Run [test/build command]
+
 Return:
 1. Implementation summary
 2. Files changed
-3. Verification command
+3. Any risks or follow-ups
 ```
 
 **Habit:** Add one constraint before asking the agent to change code.

@@ -4,7 +4,9 @@
 
 [中文说明](README-zh.md)
 
-Prompt Sensei is a quiet, local-first prompt coach for Claude Code and Codex, including IDE/plugin environments that can load those skills. It gives stage-aware feedback, rewrites rough prompts into better ones, looks back on local history when you ask, and helps you practice one habit at a time.
+[Quickstart](#5-minute-quickstart) · [FAQ](docs/faq.md) · [Privacy](docs/privacy.md) · [Examples](examples/prompt-gallery.md) · [Advanced setup](docs/advanced-setup.md) · [Discussions](https://github.com/chengzhongwei/Prompt-sensei/discussions)
+
+Prompt Sensei is a quiet, local-first prompt coach for Claude Code and Codex. It gives stage-aware feedback, rewrites rough prompts into better ones, looks back on local history when you ask, and helps you practice one habit at a time.
 
 No cloud. No telemetry. No leaderboard. No raw prompt archive.
 
@@ -98,12 +100,10 @@ Prompt Sensei works best when the host tool can load the skill directly.
 
 | Invocation style | Environments |
 |---|---|
-| Direct skill command, e.g. `/prompt-sensei improve "fix this test"` | Claude Code and compatible Claude Code skill environments |
-| Natural language, e.g. `Use prompt-sensei to improve this prompt...` | Codex and IDE/plugin environments where slash commands are not available |
+| Direct skill command, e.g. `/prompt-sensei improve "fix this test"` | Claude Code |
+| Natural language, e.g. `Use prompt-sensei to improve this prompt...` | Codex |
 
-If Claude Code or Codex is running inside an IDE plugin and can access the installed skill, use the same Prompt Sensei workflow there.
-
-`/prompt-sensei observe` is a Claude Code skill command. In Codex and other hosts without slash commands, natural-language requests depend on the host agent loading the installed skill. `npm run init` only creates Prompt Sensei's local consent/session record; it does not turn on live coaching by itself.
+Cursor and other AI coding tools are not supported yet. `/prompt-sensei observe` is a Claude Code skill command. In Codex, natural-language requests depend on the host agent loading the installed skill. `npm run init` only creates Prompt Sensei's local consent/session record; it does not turn on live coaching by itself.
 
 ---
 
@@ -179,7 +179,7 @@ npm run sync-codex-install
 
 ---
 
-## v0.4 Settings
+## v0.5 Settings
 
 Prompt Sensei stores local preferences in `~/.prompt-sensei/settings.json`. Defaults are intentionally quiet: auto observe off, redacted prompt previews off, and raw prompts never stored.
 
@@ -206,12 +206,12 @@ The coaching line stays small:
 
 Think of the score as prompt readiness for the current stage, not universal prompt quality. A 100/100 prompt can still produce a weak answer if the model lacks domain knowledge, the task is ambiguous outside the prompt, or the rubric does not fit the user's domain.
 
-The report focuses on growth:
+The report focuses on repeated habits:
 
 ```txt
-Average score:    81 / 100  (Good)
-Most common type: implementation
-Next habit:       End prompts with the exact test command or edge cases.
+Next habit:      End with the command, test, or edge case that proves the work.
+Repeated gap:    add-verification-command (5×)
+Average score:   81 / 100  (Good)
 ```
 
 For the full philosophy, read [docs/philosophy.md](docs/philosophy.md). For scoring details, read [docs/scoring-rubric.md](docs/scoring-rubric.md).
@@ -232,6 +232,8 @@ To check whether it helped, compare the original prompt and the improved prompt 
 If the improved prompt does not produce a better outcome, treat that as useful feedback for the rubric. Prompt Sensei is meant to teach better prompting habits, not replace your judgment.
 
 For maintainers, `npm run eval` prints calibration fixtures that make it easier to review Sensei's stage choices, score bands, flags, and tips across weak, medium, strong, privacy-risk, safety-risk, and non-engineering prompts.
+
+For a more direct skeptical read, see [FAQ](docs/faq.md).
 
 ---
 

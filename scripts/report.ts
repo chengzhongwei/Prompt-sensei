@@ -10,6 +10,13 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import { spawn } from "child_process";
+import {
+  TIP_COACHING,
+  normalizeStage,
+  normalizeTaskType,
+  selectTipKind,
+  type TipKind,
+} from "./lib/coaching";
 
 const DATA_DIR = join(homedir(), ".prompt-sensei");
 const EVENTS_FILE = join(DATA_DIR, "events.jsonl");
@@ -24,6 +31,7 @@ interface PromptEvent {
   taskType?: string;
   score?: number;
   flags?: string[];
+  tipKind?: string;
 }
 
 interface UpdateState {
@@ -34,50 +42,6 @@ interface UpdateState {
   currentSha?: string;
   remoteSha?: string;
 }
-
-interface CoachingNote {
-  habit: string;
-  why: string;
-  practice: string;
-}
-
-const FLAG_COACHING: Record<string, CoachingNote> = {
-  "missing-context": {
-    habit: "Add the error message, expected behavior, and recent change before asking for help.",
-    why: "Context is the difference between guessing and diagnosing.",
-    practice: "For the next three debugging prompts, include Expected, Actual, and Recent change.",
-  },
-  "no-constraints": {
-    habit: "Add one boundary such as no new dependencies, minimal diff, or do not change the public API.",
-    why: "Constraints protect the parts of the codebase you do not want the agent to redesign.",
-    practice: "For the next three implementation prompts, add a single 'Do not...' line.",
-  },
-  "no-verification": {
-    habit: "End the prompt with the exact test command or edge cases to verify.",
-    why: "Verification turns a patch request into a checkable engineering task.",
-    practice: "For the next three execution prompts, end with 'Verify with...'.",
-  },
-  "no-output-format": {
-    habit: "Ask for a clear return shape, such as root cause, fix, and test command.",
-    why: "A response format makes the answer easier to review and act on.",
-    practice: "For the next three prompts, include a short 'Return:' list.",
-  },
-  "missing-input-boundaries": {
-    habit: "Name the file, function, or line range Claude should focus on.",
-    why: "Input boundaries keep the agent from searching or editing more than needed.",
-    practice: "For the next three code prompts, include at least one file path.",
-  },
-  "privacy-risk": {
-    habit: "Redact secrets, tokens, emails, and private URLs before prompting.",
-    why: "Privacy issues matter more than prompt structure because they can expose sensitive data.",
-    practice: "For the next three prompts with logs or credentials, replace sensitive values with labeled placeholders.",
-  },
-  "safety-risk": {
-    habit: "Add confirmation, rollback, or dry-run steps before destructive actions.",
-    why: "Clear prompts can still be unsafe if they ask the agent to delete, overwrite, or force-push without safeguards.",
-    practice: "For the next three risky operations, include 'confirm plan first' and a rollback step.",
-  },
-};
 
 function loadEvents(days: number): PromptEvent[] {
   if (!existsSync(EVENTS_FILE)) return [];
@@ -216,6 +180,29 @@ function topFlagByTask(
   return rows;
 }
 
+function eventTipKind(event: PromptEvent): TipKind | null {
+  if (event.tipKind && Object.prototype.hasOwnProperty.call(TIP_COACHING, event.tipKind)) {
+    return event.tipKind as TipKind;
+  }
+  return selectTipKind(event.flags ?? [], event.stage, event.taskType);
+}
+
+function topTipByTask(
+  taskTipCounts: Map<string, Map<TipKind, number>>,
+  topTasks: Array<[string, number]>,
+  limit: number
+): Array<{ task: string; tipKind: TipKind; count: number }> {
+  const rows: Array<{ task: string; tipKind: TipKind; count: number }> = [];
+  for (const [task] of topTasks) {
+    const topTip = topN(taskTipCounts.get(task) ?? new Map<TipKind, number>(), 1)[0];
+    if (topTip) {
+      rows.push({ task, tipKind: topTip[0], count: topTip[1] });
+    }
+    if (rows.length >= limit) break;
+  }
+  return rows;
+}
+
 function describeStageShift(events: PromptEvent[]): string | null {
   if (events.length < 10) return null;
 
@@ -223,13 +210,14 @@ function describeStageShift(events: PromptEvent[]): string | null {
   const previous = events.slice(-10, -5);
   const stages = new Set<string>();
   for (const event of [...recent, ...previous]) {
-    if (event.stage) stages.add(event.stage);
+    const stage = normalizeStage(event.stage);
+    if (stage) stages.add(stage);
   }
 
   let biggestShift: { stage: string; delta: number; recentCount: number; previousCount: number } | null = null;
   for (const stage of stages) {
-    const recentCount = recent.filter((event) => event.stage === stage).length;
-    const previousCount = previous.filter((event) => event.stage === stage).length;
+    const recentCount = recent.filter((event) => normalizeStage(event.stage) === stage).length;
+    const previousCount = previous.filter((event) => normalizeStage(event.stage) === stage).length;
     const delta = recentCount / recent.length - previousCount / previous.length;
     if (!biggestShift || Math.abs(delta) > Math.abs(biggestShift.delta)) {
       biggestShift = { stage, delta, recentCount, previousCount };
@@ -244,10 +232,10 @@ function describeStageShift(events: PromptEvent[]): string | null {
 
 function momentumMessage(trend100: number): string {
   if (trend100 > 8) {
-    return "Your recent prompts are getting noticeably stronger.";
+    return "Your recent prompts are scoring higher, but treat that as a signal to inspect, not proof of better outcomes.";
   }
   if (trend100 > 4) {
-    return "Your scores are trending upward. The practice is working.";
+    return "Your scores are trending upward. Check whether the same habits also reduced clarification or rework.";
   }
   if (trend100 < -8) {
     return "Your recent prompts are scoring lower, which often means the work got harder or less familiar.";
@@ -271,8 +259,8 @@ function scoreBandMessage(avgScore100: number, topTask: string): string {
   return `Your ${topTask} prompts are still mostly early-stage. Start by making the desired action unmistakable.`;
 }
 
-function formatCoaching(area: { task: string; flag: string; count: number }): string | null {
-  const note = FLAG_COACHING[area.flag];
+function formatCoaching(area: { task: string; tipKind: TipKind; count: number }): string | null {
+  const note = TIP_COACHING[area.tipKind];
   if (!note) return null;
 
   return [
@@ -286,8 +274,8 @@ function generateEncouragement(
   avgScore100: number,
   trend100: number,
   topTask: string,
-  topFlags: Array<[string, number]>,
-  taskGrowthAreas: Array<{ task: string; flag: string; count: number }>
+  topTips: Array<[TipKind, number]>,
+  taskGrowthAreas: Array<{ task: string; tipKind: TipKind; count: number }>
 ): string {
   const lines: string[] = [];
 
@@ -303,9 +291,9 @@ function generateEncouragement(
     }
   }
 
-  if (topFlags.length > 0) {
-    const [topFlag] = topFlags[0];
-    const coaching = formatCoaching({ task: topTask, flag: topFlag, count: 0 });
+  if (topTips.length > 0) {
+    const [topTip] = topTips[0];
+    const coaching = formatCoaching({ task: topTask, tipKind: topTip, count: 0 });
     if (coaching) {
       lines.push(coaching);
     }
@@ -377,18 +365,19 @@ function main(): void {
   const stageCounts = new Map<string, number>();
   const taskCounts = new Map<string, number>();
   const flagCounts = new Map<string, number>();
+  const tipCounts = new Map<TipKind, number>();
   const taskFlagCounts = new Map<string, Map<string, number>>();
+  const taskTipCounts = new Map<string, Map<TipKind, number>>();
 
   for (const event of scoredEvents) {
-    if (event.stage) {
-      increment(stageCounts, event.stage);
+    const task = normalizeTaskType(event.taskType);
+    const stage = normalizeStage(event.stage);
+    if (stage) {
+      increment(stageCounts, stage);
     }
-    if (event.taskType) {
-      increment(taskCounts, event.taskType);
-    }
+    increment(taskCounts, task);
     for (const flag of event.flags ?? []) {
       increment(flagCounts, flag);
-      const task = event.taskType ?? "unknown";
       let nested = taskFlagCounts.get(task);
       if (!nested) {
         nested = new Map<string, number>();
@@ -396,18 +385,36 @@ function main(): void {
       }
       increment(nested, flag);
     }
+    const tipKind = eventTipKind(event);
+    if (tipKind) {
+      increment(tipCounts, tipKind);
+      let nested = taskTipCounts.get(task);
+      if (!nested) {
+        nested = new Map<TipKind, number>();
+        taskTipCounts.set(task, nested);
+      }
+      increment(nested, tipKind);
+    }
   }
 
   const topStage = topN(stageCounts, 1)[0]?.[0] ?? "unknown";
   const topTasks = topN(taskCounts, 3);
+  const usefulTopTasks = topTasks.some(([task]) => task !== "other")
+    ? topTasks.filter(([task]) => task !== "other")
+    : topTasks;
   const topTask = topTasks[0]?.[0] ?? "unknown";
+  const displayTask = usefulTopTasks[0]?.[0] ?? topTask;
   const topFlags = topN(flagCounts, 3);
+  const topTips = topN(tipCounts, 3);
   const taskGrowthAreas = topFlagByTask(taskFlagCounts, topTasks, 3);
+  const taskHabitAreas = topTipByTask(taskTipCounts, usefulTopTasks, 3);
   const stageShift = describeStageShift(scoredEvents);
 
   const avgScore100 = Math.round(avgScore * 20);
   const trend100 = Math.round(trend * 20);
   const trendSymbol = trend100 > 2 ? "↑" : trend100 < -2 ? "↓" : "→";
+  const topHabit = topTips[0]?.[0];
+  const topHabitNote = topHabit ? TIP_COACHING[topHabit] : null;
 
   console.log("# Prompt Sensei Report");
   console.log(`Observed ${scores.length} scored prompts in the last ${days} days.`);
@@ -415,11 +422,17 @@ function main(): void {
     console.log(`Hash-only prompt captures: ${hashOnlyCount} (excluded from scoring)`);
   }
   console.log("");
+  if (topHabitNote) {
+    console.log(`**Next habit:**      ${topHabitNote.habit}`);
+  }
+  if (topHabit) {
+    console.log(`**Repeated gap:**    ${topHabit} (${tipCounts.get(topHabit)}×)`);
+  }
   console.log(`**Average score:**    ${avgScore100} / 100  (${gradeLabel(avgScore100)})`);
   if (scores.length >= 10) {
     console.log(`**Trend:**            ${trendSymbol}  ${Math.abs(trend100)} pts vs previous 5 prompts`);
   }
-  console.log(`**Most common type:** ${topTask}`);
+  console.log(`**Most common type:** ${displayTask}`);
   console.log(`**Most common stage:** ${topStage}`);
   if (stageShift) {
     console.log(`**Stage trend:**      ${stageShift}`);
@@ -436,7 +449,19 @@ function main(): void {
     }
   }
 
-  if (taskGrowthAreas.length > 0) {
+  if (topTips.length > 0) {
+    console.log("\n## Most common habits");
+    for (const [tipKind, count] of topTips) {
+      console.log(`- ${tipKind}: ${TIP_COACHING[tipKind].habit} (${count}×)`);
+    }
+  }
+
+  if (taskHabitAreas.length > 0) {
+    console.log("\n## Habit by task type");
+    for (const area of taskHabitAreas) {
+      console.log(`- ${area.task}: ${area.tipKind} (${area.count}×)`);
+    }
+  } else if (taskGrowthAreas.length > 0) {
     console.log("\n## Growth area by task type");
     for (const area of taskGrowthAreas) {
       console.log(`- ${area.task}: ${area.flag} (${area.count}×)`);
@@ -455,7 +480,7 @@ function main(): void {
   printUpdateNotice();
 
   console.log("\n## Feedback");
-  console.log(generateEncouragement(avgScore100, trend100, topTask, topFlags, taskGrowthAreas));
+  console.log(generateEncouragement(avgScore100, trend100, displayTask, topTips, taskHabitAreas));
 }
 
 main();

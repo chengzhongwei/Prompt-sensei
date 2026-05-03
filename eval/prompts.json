@@ -6,6 +6,7 @@
     "expectedStage": "Exploration",
     "expectedScoreBand": "60-90",
     "expectedFlags": [],
+    "expectedTipKinds": ["clarify-goal"],
     "expectedTipTheme": "make the goal slightly clearer"
   },
   {
@@ -15,6 +16,7 @@
     "expectedStage": "Diagnosis",
     "expectedScoreBand": "55-80",
     "expectedFlags": ["missing-context"],
+    "expectedTipKinds": ["name-file-or-function", "add-context-evidence"],
     "expectedTipTheme": "add file path or recent change"
   },
   {
@@ -25,6 +27,8 @@
     "acceptableStages": ["Exploration", "Execution"],
     "expectedScoreBand": "50-75",
     "expectedFlags": [],
+    "expectedTipKinds": ["add-expected-actual", "name-file-or-function"],
+    "badTipKinds": ["add-output-format"],
     "expectedTipTheme": "name expected and actual behavior",
     "notes": "Stage is intentionally ambiguous without surrounding context. Exploration is kinder for a first signal; Execution is also defensible because the verb asks for a change."
   },
@@ -35,6 +39,7 @@
     "expectedStage": "Execution",
     "expectedScoreBand": "60-85",
     "expectedFlags": ["no-output-format", "no-verification"],
+    "expectedTipKinds": ["add-verification-command", "add-output-format"],
     "expectedTipTheme": "add return format or verification"
   },
   {
@@ -53,6 +58,7 @@
     "expectedStage": "Verification",
     "expectedScoreBand": "70-90",
     "expectedFlags": ["missing-input-boundaries"],
+    "expectedTipKinds": ["name-file-or-function"],
     "expectedTipTheme": "name exact diff or files",
     "notes": "This is already a verification request. The weaker point is input boundary: src/auth is a directory, not a concrete diff, file, or branch."
   },
@@ -63,6 +69,7 @@
     "expectedStage": "Reusable workflow",
     "expectedScoreBand": "75-95",
     "expectedFlags": ["no-verification"],
+    "expectedTipKinds": ["add-verification-command"],
     "expectedTipTheme": "add final verification command",
     "notes": "Strong workflow prompt, but it does not state how to validate the checklist itself or what command proves release readiness."
   },
@@ -84,6 +91,7 @@
     "expectedStage": "Diagnosis",
     "expectedScoreBand": "35-70",
     "expectedFlags": ["privacy-risk"],
+    "expectedTipKinds": ["redact-sensitive-data"],
     "expectedTipTheme": "redact secrets before prompting"
   },
   {
@@ -112,6 +120,8 @@
     "expectedStage": "Execution",
     "expectedScoreBand": "25-55",
     "expectedFlags": ["missing-context", "missing-input-boundaries", "no-constraints", "no-output-format", "no-verification"],
+    "expectedTipKinds": ["name-file-or-function", "add-scope-boundary"],
+    "badTipKinds": ["add-output-format"],
     "expectedTipTheme": "narrow the scope to one module or file"
   },
   {
@@ -121,6 +131,7 @@
     "expectedStage": "Execution",
     "expectedScoreBand": "55-80",
     "expectedFlags": ["missing-input-boundaries", "no-constraints"],
+    "expectedTipKinds": ["name-file-or-function", "add-scope-boundary"],
     "expectedTipTheme": "add scope and safety constraints"
   },
   {
@@ -130,6 +141,7 @@
     "expectedStage": "Execution",
     "expectedScoreBand": "25-60",
     "expectedFlags": ["missing-context", "no-verification", "safety-risk"],
+    "expectedTipKinds": ["add-safety-check"],
     "expectedTipTheme": "ask for confirmation and safety checks",
     "notes": "The prompt is clear, but the requested operation is risky. Sensei should not reward clarity while ignoring blast radius."
   },
@@ -150,6 +162,7 @@
     "acceptableStages": ["Reusable workflow", "Exploration"],
     "expectedScoreBand": "35-65",
     "expectedFlags": ["missing-context", "missing-input-boundaries", "no-constraints", "no-output-format", "no-verification"],
+    "expectedTipKinds": ["state-decision-criteria", "add-context-evidence"],
     "expectedTipTheme": "add audience and project context"
   },
   {
@@ -159,6 +172,7 @@
     "expectedStage": "Action",
     "expectedScoreBand": "35-65",
     "expectedFlags": [],
+    "expectedTipKinds": ["clarify-goal"],
     "expectedTipTheme": "name the action"
   },
   {
@@ -169,6 +183,7 @@
     "acceptableStages": ["Execution", "Exploration"],
     "expectedScoreBand": "35-65",
     "expectedFlags": [],
+    "expectedTipKinds": ["clarify-goal", "state-decision-criteria"],
     "expectedTipTheme": "provide audience, tone, and source text",
     "notes": "Non-engineering prompt. The coding flags should not dominate; the useful teaching point is missing audience/source/tone."
   },
@@ -199,6 +214,7 @@
     "expectedStage": "Exploration",
     "expectedScoreBand": "35-65",
     "expectedFlags": [],
+    "expectedTipKinds": ["state-decision-criteria", "clarify-goal"],
     "expectedTipTheme": "name market, criteria, and output"
   },
   {
@@ -208,6 +224,7 @@
     "expectedStage": "Execution",
     "expectedScoreBand": "45-75",
     "expectedFlags": ["privacy-risk"],
+    "expectedTipKinds": ["redact-sensitive-data"],
     "expectedTipTheme": "redact personal data before analysis",
     "notes": "This is not a secret-token case, but it still contains unnecessary personal data."
   },
@@ -219,6 +236,7 @@
     "acceptableStages": ["Exploration", "Action"],
     "expectedScoreBand": "70-90",
     "expectedFlags": [],
+    "expectedTipKinds": ["clarify-goal"],
     "expectedTipTheme": "score this as a genuine factual question, not low-signal; tip can mention tracked vs untracked scope",
     "notes": "Regression fixture: short factual questions must be scored even when the user asks for a terse answer."
   },
@@ -229,6 +247,7 @@
     "expectedStage": "Verification",
     "expectedScoreBand": "70-89",
     "expectedFlags": ["missing-input-boundaries"],
+    "expectedTipKinds": ["name-file-or-function"],
     "expectedTipTheme": "must include a concrete Tip, not only the label Good — minor gaps",
     "notes": "Regression fixture: scores below 90 may use the Good label, but the final Sensei line still needs `Tip:` with a concrete next habit."
   }

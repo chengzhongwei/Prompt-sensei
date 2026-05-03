@@ -2,6 +2,28 @@
 
 All notable changes to Prompt Sensei are documented here.
 
+## 0.5.0 - 2026-05-03
+
+### Added
+
+- Added shared coaching metadata with canonical `tipKind` values for repeated habits.
+- Added task-aware tip priority guidance so Sensei chooses the most useful next habit instead of mechanically picking the lowest dimension.
+- Added habit-first reports that surface the next habit and repeated gap before average score.
+- Added eval fixture fields for expected and poor tip-kind choices.
+- Added an FAQ covering usefulness, privacy, scoring limits, Claude Code/Codex support, and unsupported tools such as Cursor.
+- Added GitHub issue and discussion templates for redacted scoring feedback.
+
+### Changed
+
+- Observation events now use v2 for scored prompt observations and can store `tipKind`.
+- Stop hook persistence now infers habit metadata from the visible Sensei tip when available.
+- Report language no longer claims that upward score movement proves practice is working.
+- README quick links now point to FAQ, privacy, examples, advanced setup, and discussions.
+
+### Fixed
+
+- PreCompact hook now stays inert unless auto observe is enabled and observe consent has already been granted.
+
 ## 0.4.0 - 2026-05-03
 
 ### Added

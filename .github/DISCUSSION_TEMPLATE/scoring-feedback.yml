@@ -1,0 +1,42 @@
+title: "[Scoring feedback] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Prompt Sensei. Please share only redacted examples that are safe to make public.
+  - type: input
+    id: stage
+    attributes:
+      label: Stage Sensei chose
+      placeholder: "Execution"
+  - type: input
+    id: score
+    attributes:
+      label: Score
+      placeholder: "76/100"
+  - type: input
+    id: tip
+    attributes:
+      label: Tip
+      placeholder: "add a verification command"
+  - type: checkboxes
+    id: issue
+    attributes:
+      label: What felt off?
+      options:
+        - label: Wrong stage
+        - label: Score too high or too low
+        - label: Tip too generic
+        - label: Tip not useful for my task
+        - label: Privacy or safety concern
+        - label: Other
+  - type: textarea
+    id: redacted-prompt
+    attributes:
+      label: Optional redacted prompt
+      description: Do not include secrets, customer data, private code, proprietary prompts, or internal URLs.
+      render: txt
+  - type: textarea
+    id: better-feedback
+    attributes:
+      label: What would have helped more?

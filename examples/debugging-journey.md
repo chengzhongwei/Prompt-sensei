@@ -77,10 +77,10 @@ The developer now knows the relevant file and suspects a recent change.
 | Privacy/Safety | 5/5 | Clean |
 
 **Feedback:**
-This is a solid debugging prompt. Claude can work with this and will probably get to the root cause. Two things that would make the response more useful: specifying the output format (root cause, fix, test command) and adding a verification step.
+This is a solid debugging prompt. Claude can work with this and may get to the root cause. The most useful next habit is verification: name the exact test command or failing assertion that proves the fix worked. Output format can help, but verification matters more here because the prompt already has context, a file, and a scope constraint.
 
 **One habit to practice next:**
-End every debugging prompt with "Return: 1. Root cause 2. Minimal fix 3. Test command."
+Add `Verification: run [test command]` or paste the exact failing assertion.
 
 ---
 
@@ -111,6 +111,9 @@ End every debugging prompt with "Return: 1. Root cause 2. Minimal fix 3. Test co
 >   - Prefer the smallest safe fix
 >   - If the test expectation is wrong, explain why before changing it
 >
+> Verification:
+>   Run npm test src/__tests__/auth.test.ts.
+>
 > Return:
 >   1. Root cause
 >   2. Proposed fix
@@ -128,7 +131,7 @@ End every debugging prompt with "Return: 1. Root cause 2. Minimal fix 3. Test co
 | Input Boundaries | 4/5 | Three files named (could specify which functions) |
 | Constraints | 5/5 | Three constraints, all clear |
 | Output Format | 5/5 | Numbered return structure |
-| Verification | 4/5 | Test command + edge cases requested |
+| Verification | 5/5 | Exact test command + edge cases requested |
 | Privacy/Safety | 5/5 | No sensitive data |
 
 **Feedback:**
@@ -142,16 +145,16 @@ Excellent. This is execution-ready. Claude can go directly to the fix with no fo
 |---|---|---|
 | 1 → 2 | Exploration → Diagnosis | Expected vs. actual behavior | The problem became diagnosable |
 | 2 → 3 | Diagnosis → Execution | File name + constraint | Claude had enough scope to start work |
-| 3 → 4 | Execution → Execution | Output structure + verification | The request became execution-ready |
+| 3 → 4 | Execution → Execution | Verification command + output structure | The request became execution-ready |
 
 The score is stage-aware, so it is not always a straight line upward. When the prompt moves from Exploration to Execution, Prompt Sensei applies more dimensions and the bar gets higher. That is intentional: a short exploratory prompt can be reasonable early, while an implementation request needs clearer context, boundaries, and verification.
 
 The three biggest gains came from:
 1. Adding expected vs. actual (most impactful single addition for any debugging prompt)
 2. Naming the specific file
-3. Specifying the return format
+3. Adding a verification command
 
-Each of those took under 30 seconds to add. The cumulative effect was the difference between a response that required 3 follow-up rounds and one that produced the fix in a single exchange.
+Each of those took under 30 seconds to add. Together, they reduce the chance of follow-up clarification and make the result easier to verify. They do not guarantee a one-shot fix, but they give the agent a much cleaner first attempt.
 
 ---
 
@@ -165,6 +168,7 @@ Context:     Stack, recent change, related files
 Expected:    What should happen?
 Actual:      What actually happens?
 Constraints: What should Claude not touch?
+Verification: Test command and edge cases
 Return:      Root cause · Fix · Test command · Edge cases
 ```
 

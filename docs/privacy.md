@@ -16,6 +16,7 @@ When observation mode is active, Prompt Sensei records the following per prompt:
 | `taskType` | string | `"debugging"` |
 | `score` | number | `3.8` |
 | `flags` | string[] | `["missing-context", "privacy-risk", "safety-risk"]` |
+| `tipKind` | string | `"add-verification-command"` |
 | `promptHash` | string | `"a3f1b2c4..."` (SHA-256 prefix, optional) |
 
 **Raw prompt text is never stored by default.**
@@ -45,11 +46,13 @@ When an optional Claude Code `Stop` hook is enabled, it can quietly record the f
 | `stage` | string | `"diagnosis"` |
 | `taskType` | string | `"other"` |
 | `score` | number | `4` |
+| `flags` | string[] | `["no-verification"]` |
+| `tipKind` | string | `"add-verification-command"` |
 | `source` | string | `"stop-hook"` |
 
 The Stop hook reads Claude Code's `last_assistant_message` hook field to parse the Sensei line. It does not store Claude's response text.
 
-Operational hooks may also write non-prompt markers to `events.jsonl`, such as `session-compacted`, with only timestamp and compact-state metadata.
+Operational hooks may also write non-prompt markers to `events.jsonl`, such as `session-compacted`, with only timestamp and compact-state metadata. These hooks stay inert unless auto observe is enabled and observe consent has already been granted.
 
 Prompt Sensei also stores cached update-check status when update checks run:
 
@@ -167,7 +170,7 @@ Auto observe hooks can be installed at user scope in `~/.claude/settings.json` o
 
 ## PreCompact and session persistence
 
-The optional `PreCompact` hook is best-effort. It writes a lightweight `session-compacted` marker to `events.jsonl` and returns short compact-safe context so coaching can resume after compaction.
+The optional `PreCompact` hook is best-effort. It writes a lightweight `session-compacted` marker to `events.jsonl` and returns short compact-safe context so coaching can resume after compaction, but only when auto observe is enabled and observe consent is already granted.
 
 The hook does not block compaction. It does not store raw conversation text. The resume context is intentionally short.
 

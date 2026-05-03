@@ -74,7 +74,7 @@ The example includes:
 - `Stop` for quiet persistence of the final scored Sensei line
 - `PreCompact` for compact-safe coaching continuity
 
-`UserPromptSubmit` captures are hash-only because the hook does not have enough conversation context to score the prompt. The `Stop` hook parses the visible Sensei line after the response and records its score/stage without a visible Bash call.
+`UserPromptSubmit` captures are hash-only because the hook does not have enough conversation context to score the prompt. The `Stop` hook parses the visible Sensei line after the response and records its score, stage, and inferred habit metadata without a visible Bash call.
 
 ## Sync Codex Install
 
@@ -109,5 +109,5 @@ Examples of expanded scope:
 
 - one selected session to all sessions
 - metadata-only to redacted prompt analysis
-- Claude Code to Codex/Cursor/other source
+- Claude Code to Codex or another future source
 - temporary report to saved Markdown report

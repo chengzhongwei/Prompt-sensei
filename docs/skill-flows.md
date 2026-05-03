@@ -199,7 +199,7 @@ If consent is already granted for the exact same scope, do not ask again. Ask ag
 
 - one selected session to all sessions
 - metadata-only to redacted prompt analysis
-- Claude Code to Codex/Cursor/other source
+- Claude Code to Codex or another future source
 - temporary report to saved Markdown report
 
 5. If consent is needed, show:

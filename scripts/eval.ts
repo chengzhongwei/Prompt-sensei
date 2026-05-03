@@ -18,6 +18,8 @@ interface EvalCase {
   acceptableStages?: string[];
   expectedScoreBand: string;
   expectedFlags: string[];
+  expectedTipKinds?: string[];
+  badTipKinds?: string[];
   expectedTipTheme: string;
   notes?: string;
 }
@@ -93,6 +95,12 @@ function printMarkdown(cases: EvalCase[]): void {
     }
     console.log(`Expected score band: ${item.expectedScoreBand}`);
     console.log(`Expected flags: ${item.expectedFlags.length > 0 ? item.expectedFlags.join(", ") : "none"}`);
+    if (item.expectedTipKinds && item.expectedTipKinds.length > 0) {
+      console.log(`Expected tip kinds: ${item.expectedTipKinds.join(", ")}`);
+    }
+    if (item.badTipKinds && item.badTipKinds.length > 0) {
+      console.log(`Bad first tip kinds: ${item.badTipKinds.join(", ")}`);
+    }
     console.log(`Expected tip theme: ${item.expectedTipTheme}`);
     if (item.notes) {
       console.log(`Notes: ${item.notes}`);

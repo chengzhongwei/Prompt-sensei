@@ -31,7 +31,7 @@ Advanced commands:
 - `/prompt-sensei clear`
 - `/prompt-sensei update`
 
-Natural-language equivalents in Codex or other hosts include "use prompt-sensei", "improve this prompt", "look back at my prompt history", "show my prompt-sensei report", "use prompt-sensei setup", and "turn auto observe on".
+Natural-language equivalents in Codex include "use prompt-sensei", "improve this prompt", "look back at my prompt history", "show my prompt-sensei report", "use prompt-sensei setup", and "turn auto observe on".
 
 When running scripts, use the installed skill root:
 
@@ -81,6 +81,16 @@ Grade labels:
 
 In observe mode, grade labels are not a substitute for coaching. For any scored prompt below 90, the Sensei line must include `Tip:` with one concrete next habit. It is okay to use a grade label like `Good — minor gaps` only when a concrete tip is also included.
 
+Choose the most useful next habit, not mechanically the lowest dimension. Apply this priority:
+
+- Privacy/safety issues outrank prompt polish.
+- Debugging: expected/actual behavior and exact errors outrank output format.
+- Implementation/refactoring: file boundaries and scope constraints outrank output format.
+- Code review/verification: diff or file scope outranks response polish.
+- Planning/documentation: decision criteria, audience, and context outrank engineering-only details.
+
+Use a `tipKind` when recording below-90 feedback: `clarify-goal`, `add-context-evidence`, `add-expected-actual`, `add-error-output`, `name-file-or-function`, `add-scope-boundary`, `add-output-format`, `add-verification-command`, `redact-sensitive-data`, `add-safety-check`, or `state-decision-criteria`.
+
 ## Observe
 
 When invoked by a Claude Code SessionStart hook with `observe --auto-start`:
@@ -106,10 +116,10 @@ For each later normal user prompt while observe mode is active:
    ```
    > **[[Sensei: skipped grading for low-signal prompt]]()**
    ```
-2. Otherwise classify stage, score applicable dimensions, and choose one concrete tip for the lowest-scoring useful dimension.
+2. Otherwise classify stage, score applicable dimensions, and choose one concrete tip for the most useful next habit by stage and task type.
 3. Record the observation:
    ```bash
-   node <skill-root>/dist/scripts/observe.js --stage <stage> --score <1-5-composite> --task-type <type> --flags <comma-separated-flags>
+   node <skill-root>/dist/scripts/observe.js --stage <stage> --score <1-5-composite> --task-type <type> --flags <comma-separated-flags> --tip-kind <tipKind>
    ```
 4. End the response with exactly one line:
    ```
