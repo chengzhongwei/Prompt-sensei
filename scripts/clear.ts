@@ -4,19 +4,12 @@
  * Usage: clear.js [--force] [--all]
  *
  * --force   Skip confirmation prompt
- * --all     Also delete config.json (resets consent)
+ * --all     Also delete config.json and settings.json (resets consent/settings)
  */
 
 import { existsSync, unlinkSync, readFileSync, rmSync } from "fs";
-import { join } from "path";
-import { homedir } from "os";
 import * as readline from "readline";
-
-const DATA_DIR = join(homedir(), ".prompt-sensei");
-const EVENTS_FILE = join(DATA_DIR, "events.jsonl");
-const CONFIG_FILE = join(DATA_DIR, "config.json");
-const UPDATE_FILE = join(DATA_DIR, "update-check.json");
-const REPORTS_DIR = join(DATA_DIR, "reports");
+import { CONFIG_FILE, EVENTS_FILE, REPORTS_DIR, SETTINGS_FILE, UPDATE_FILE } from "./lib/paths";
 
 function countEntries(): number {
   if (!existsSync(EVENTS_FILE)) return 0;
@@ -46,11 +39,22 @@ function deleteData(all: boolean): void {
     console.log(`Deleted: ${REPORTS_DIR}`);
   }
 
+  const resetConsent = all && (existsSync(CONFIG_FILE) || existsSync(SETTINGS_FILE));
+
   if (all && existsSync(CONFIG_FILE)) {
     unlinkSync(CONFIG_FILE);
     deleted++;
     console.log(`Deleted: ${CONFIG_FILE}`);
-    console.log("Consent reset. Prompt Sensei will ask for consent again on next use.");
+  }
+
+  if (all && existsSync(SETTINGS_FILE)) {
+    unlinkSync(SETTINGS_FILE);
+    deleted++;
+    console.log(`Deleted: ${SETTINGS_FILE}`);
+  }
+
+  if (resetConsent) {
+    console.log("Consent and settings reset. Prompt Sensei will ask for consent again on next use.");
   }
 
   if (deleted === 0) {
@@ -79,6 +83,7 @@ async function main(): Promise<void> {
   if (
     entries === 0 &&
     !existsSync(CONFIG_FILE) &&
+    !existsSync(SETTINGS_FILE) &&
     !existsSync(UPDATE_FILE) &&
     !existsSync(REPORTS_DIR)
   ) {
@@ -92,7 +97,7 @@ async function main(): Promise<void> {
   }
 
   const what = all
-    ? "events, update cache, saved reports, and config (resets consent)"
+    ? "events, update cache, saved reports, config, and settings (resets consent/settings)"
     : "events, update cache, and saved reports";
   const ok = await confirm(
     `Delete ${entries} prompt entries (${what})? [y/N] `

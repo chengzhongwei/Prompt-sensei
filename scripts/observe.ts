@@ -14,45 +14,21 @@
  * Storage: ~/.prompt-sensei/events.jsonl
  */
 
-import { createHash } from "crypto";
-import { mkdirSync, appendFileSync, writeFileSync, existsSync, readFileSync } from "fs";
+import { appendFileSync, existsSync, writeFileSync } from "fs";
 import { join } from "path";
-import { homedir } from "os";
 import * as readline from "readline";
 import { spawn } from "child_process";
+import { DATA_DIR, EVENTS_FILE, CONFIG_FILE } from "./lib/paths";
+import { hashPrompt, redactedPromptPreview } from "./lib/redact";
+import {
+  ensureDataDir,
+  grantObserveConsent,
+  hasObserveConsent,
+  loadSettings,
+  saveSettings,
+} from "./lib/settings";
 
-const DATA_DIR = join(homedir(), ".prompt-sensei");
-const EVENTS_FILE = join(DATA_DIR, "events.jsonl");
-const CONFIG_FILE = join(DATA_DIR, "config.json");
 const UPDATE_SCRIPT = join(__dirname, "update.js");
-
-// Patterns for redacting sensitive data before hashing
-const REDACT_PATTERNS: Array<[RegExp, string]> = [
-  [/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, "[EMAIL]"],
-  [/\b(sk-|sk-ant-|ghp_|github_pat_|xox[baprs]-)[A-Za-z0-9\-_]{10,}/g, "[API_KEY]"],
-  [/\b(password|passwd|secret|token|api_?key)\s*[:=]\s*\S+/gi, "[CREDENTIAL]"],
-  [/-----BEGIN [A-Z ]+-----[\s\S]+?-----END [A-Z ]+-----/g, "[PRIVATE_KEY]"],
-  [/https?:\/\/[^\s]+\?[^\s]+/g, "[URL_WITH_PARAMS]"],
-];
-
-function redact(text: string): string {
-  let result = text;
-  for (const [pattern, replacement] of REDACT_PATTERNS) {
-    result = result.replace(pattern, replacement);
-  }
-  return result;
-}
-
-function hashPrompt(text: string): string {
-  const redacted = redact(text);
-  return createHash("sha256").update(redacted).digest("hex").slice(0, 16);
-}
-
-function ensureDataDir(): void {
-  if (!existsSync(DATA_DIR)) {
-    mkdirSync(DATA_DIR, { recursive: true });
-  }
-}
 
 function parseArgs(argv: string[]): Record<string, string | boolean> {
   const result: Record<string, string | boolean> = {};
@@ -97,15 +73,6 @@ interface Config {
   storeRaw?: boolean;
 }
 
-function loadConfig(): Config | null {
-  if (!existsSync(CONFIG_FILE)) return null;
-  try {
-    return JSON.parse(readFileSync(CONFIG_FILE, "utf8")) as Config;
-  } catch {
-    return null;
-  }
-}
-
 function saveConfig(config: Config): void {
   ensureDataDir();
   writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2) + "\n", "utf8");
@@ -120,6 +87,7 @@ interface PromptEvent {
   score?: number;
   flags?: string[];
   promptHash?: string;
+  redactedPromptPreview?: string;
 }
 
 function appendEvent(event: PromptEvent): void {
@@ -152,6 +120,23 @@ async function readStdin(): Promise<string> {
   return lines.join("\n");
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function promptTextFromStdin(stdinText: string): string {
+  try {
+    const parsed = JSON.parse(stdinText) as unknown;
+    if (isRecord(parsed) && typeof parsed["prompt"] === "string") {
+      return parsed["prompt"];
+    }
+    return "";
+  } catch {
+    // Plain stdin is the normal path for direct script usage.
+  }
+  return stdinText;
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv);
 
@@ -161,45 +146,30 @@ async function main(): Promise<void> {
   }
 
   if (args["init"] === true) {
-    const config = loadConfig();
-    if (!config) {
-      // First run — SKILL.md already showed the consent prompt and got confirmation
-      // Create config and log session-start now
-      ensureDataDir();
-      saveConfig({
-        v: 1,
-        consentGiven: true,
-        consentAt: new Date().toISOString(),
-      });
-      appendEvent({
-        v: 1,
-        ts: new Date().toISOString(),
-        type: "session-start",
-      });
-      runBackgroundUpdateCheck();
-      console.log(`Session started. Data: ${DATA_DIR}`);
-      return;
-    }
+    const at = new Date().toISOString();
+    const settings = grantObserveConsent(loadSettings(), at);
+    saveSettings(settings);
 
     appendEvent({
       v: 1,
-      ts: new Date().toISOString(),
+      ts: at,
       type: "session-start",
     });
 
+    // Keep the legacy consent file for older installed script versions.
     saveConfig({
-      ...config,
+      v: 1,
       consentGiven: true,
-      consentAt: config.consentAt ?? new Date().toISOString(),
+      consentAt: settings.consent.observe.grantedAt ?? at,
     });
 
-    console.log("Session started.");
+    console.log(`Session started. Data: ${DATA_DIR}`);
     runBackgroundUpdateCheck();
     return;
   }
 
-  const config = loadConfig();
-  if (!config?.consentGiven) {
+  const settings = loadSettings();
+  if (!hasObserveConsent(settings)) {
     process.stderr.write(
       "Prompt Sensei has not been initialized. Run `/prompt-sensei observe` and consent before recording observations.\n"
     );
@@ -215,14 +185,16 @@ async function main(): Promise<void> {
     args["flags"] !== undefined;
   const hashOnly = args["hash-only"] === true || !hasObservationArgs;
   const stdinText = await readStdin();
+  const promptText = promptTextFromStdin(stdinText);
 
   if (hashOnly) {
-    if (!stdinText.trim()) return;
+    if (!promptText.trim()) return;
     appendEvent({
       v: 1,
       ts: new Date().toISOString(),
       type: "prompt-hashed",
-      promptHash: hashPrompt(stdinText),
+      promptHash: hashPrompt(promptText),
+      ...(settings.saveRedactedPrompts && { redactedPromptPreview: redactedPromptPreview(promptText) }),
     });
     return;
   }
@@ -248,7 +220,9 @@ async function main(): Promise<void> {
     taskType,
     ...(score !== undefined && { score }),
     ...(flags.length > 0 && { flags }),
-    ...(stdinText.trim() && { promptHash: hashPrompt(stdinText) }),
+    ...(promptText.trim() && { promptHash: hashPrompt(promptText) }),
+    ...(promptText.trim() &&
+      settings.saveRedactedPrompts && { redactedPromptPreview: redactedPromptPreview(promptText) }),
   });
   console.log("Prompt observation recorded.");
 }

@@ -44,7 +44,7 @@ Feedback that blocks a task is annoying. Feedback that follows a task is useful.
 
 Prompt Sensei's observe mode runs alongside your work, not in front of it. The one-line score appears after your response, not before it. You can ignore it or use it — the choice is yours.
 
-This is the observe-don't-interrupt principle. Sensei watches, takes notes, and speaks when invited.
+This is the observe-don't-interrupt principle. Sensei stays alongside the session, records only consented local metadata, and speaks when invited.
 
 ---
 
@@ -64,7 +64,7 @@ Prompt Sensei tracks trends, not one-off scores. A prompt that scores 50/100 is 
 
 The reports are designed to show movement, not rank. They separate scored observations from hash-only hook captures, and the most useful signal is the next habit to practice for the task type the user actually does. The goal is "Is the user learning?" not "Is this prompt good?"
 
-Lookback extends this idea to past sessions. It is not a surveillance feature or a transcript archive. It is a consent-based reflection tool: read selected local history, avoid storing raw prompts, identify repeated habits, and turn that history into a few concrete things to practice next.
+Lookback extends this idea to past sessions. It is not a transcript archive. It is a consent-based reflection tool: read selected local history, avoid storing raw prompts, identify repeated habits, and turn that history into a few concrete things to practice next.
 
 The score is a coaching signal, not a proof of quality. A higher score means the prompt is more ready for the stage Prompt Sensei classified it into. It does not guarantee that the model will know the domain, choose the best implementation, or produce a better result. The practical test is outcome-based: fewer clarification turns, safer execution, more useful first drafts, and clearer verification.
 

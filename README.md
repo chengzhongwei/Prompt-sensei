@@ -107,22 +107,53 @@ If Claude Code or Codex is running inside an IDE plugin and can access the insta
 
 ---
 
+## Beginner Path
+
+Start with:
+
+```txt
+/prompt-sensei observe
+```
+
+On first use, Prompt Sensei asks for local storage consent, starts coaching, then offers an optional auto-start choice. The simplest path is manual start; you can still use `/prompt-sensei observe` whenever you want.
+
+For a one-time guided setup, use:
+
+```txt
+/prompt-sensei setup
+```
+
+Setup covers observe consent, optional Claude Code auto-start hooks, and whether to save redacted prompt previews. In Codex, setup uses manual/natural-language start because Claude hooks are not available there. Redacted previews stay off unless you explicitly turn them on. Advanced details live in [docs/advanced-setup.md](docs/advanced-setup.md).
+
+---
+
 ## Commands
 
 ```txt
-/prompt-sensei [observe|stop|improve|lookback|report|help|clear|update]
+/prompt-sensei [observe|improve|lookback|setup|help]
 ```
+
+Essential commands:
 
 ```txt
 /prompt-sensei observe              # start live coaching
-/prompt-sensei stop                 # stop coaching this session
 /prompt-sensei improve "fix this"   # rewrite a prompt with one teaching note
 /prompt-sensei lookback             # analyze selected local prompt history
-/prompt-sensei report               # show local session trends
-/prompt-sensei update               # pull latest version and rebuild
-/prompt-sensei clear                # delete local Prompt Sensei data
+/prompt-sensei setup                # guided setup
 /prompt-sensei help
 ```
+
+More commands:
+
+```txt
+/prompt-sensei stop                 # stop coaching this session
+/prompt-sensei report               # show local session trends
+/prompt-sensei settings             # show local settings
+/prompt-sensei update               # pull latest version and rebuild
+/prompt-sensei clear                # delete local Prompt Sensei data
+```
+
+See [docs/advanced-setup.md](docs/advanced-setup.md) for settings commands, hook setup, and consent scopes.
 
 For Codex, use natural language:
 
@@ -131,6 +162,9 @@ Use prompt-sensei observe mode.
 Use prompt-sensei to improve this prompt: "fix this test"
 Use prompt-sensei to look back at my recent prompts.
 Use prompt-sensei to show my report.
+Use prompt-sensei settings.
+Use prompt-sensei setup.
+Use prompt-sensei to turn auto observe on.
 ```
 
 For direct script checks:
@@ -138,7 +172,18 @@ For direct script checks:
 ```bash
 npm run init       # create local consent/session records
 npm run observe    # show observe-script usage when run interactively
+npm run settings   # show local settings
+npm run setup-hooks -- auto-observe user
+npm run sync-codex-install
 ```
+
+---
+
+## v0.4 Settings
+
+Prompt Sensei stores local preferences in `~/.prompt-sensei/settings.json`. Defaults are intentionally quiet: auto observe off, redacted prompt previews off, and raw prompts never stored.
+
+Auto observe and redacted prompt previews are opt-in. Auto observe hooks are Claude Code-only; Codex users start with `Use prompt-sensei observe mode.` Use `/prompt-sensei setup` for a guided path or [docs/advanced-setup.md](docs/advanced-setup.md) for the full settings reference.
 
 ---
 
@@ -205,32 +250,17 @@ The flow is guided one step at a time: choose from a visible session list, choos
 
 Lookback reads raw history locally, redacts user prompts before analysis, and does not store raw history, prompt hashes, or derived metadata by default.
 
+Prompt Sensei remembers consent by scope to avoid repeated prompts, but asks again when the data access scope expands. For example, it asks again when moving from one selected session to all sessions, from metadata-only to redacted prompt analysis, from Claude Code to Codex, or from a temporary report to a saved Markdown report.
+
 ---
 
-## Optional Claude Code Hook
+## Optional Claude Code Hooks
 
-Add a `UserPromptSubmit` hook to `~/.claude/settings.json` to record hash-only prompt metadata in the background after consent:
+Claude Code hooks can provide opt-in auto-start, hash-only background captures, quiet persistence of the final Sensei score line, and compact-safe continuity. They are optional and stay quiet unless the relevant consent/settings allow them. Codex does not currently use these hooks.
 
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/skills/prompt-sensei/dist/scripts/observe.js --hash-only",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+Auto observe uses `SessionStart` to silently load observe mode, `UserPromptSubmit` to hash prompts in the background, and `Stop` to record the final Sensei score line without a visible Bash call.
 
-Hook captures are excluded from scoring because hooks do not have enough conversation context to classify the prompt or choose a coaching tip.
+Use `/prompt-sensei setup`, [docs/advanced-setup.md](docs/advanced-setup.md), or [examples/claude-settings.example.json](examples/claude-settings.example.json) when you want hook setup details.
 
 ---
 
@@ -241,11 +271,12 @@ Prompt content is sensitive. Prompt Sensei stores nothing until you consent.
 After consent, it stores local metadata only:
 
 - `~/.prompt-sensei/events.jsonl` — observation log
-- `~/.prompt-sensei/config.json` — consent record
+- `~/.prompt-sensei/config.json` — legacy consent compatibility
+- `~/.prompt-sensei/settings.json` — settings and scoped consent
 - `~/.prompt-sensei/update-check.json` — cached update status
 - `~/.prompt-sensei/reports/` — optional saved lookback reports
 
-Prompt Sensei's local scripts do not send prompt text, scores, reports, or local event data to a service. Lookback may show redacted user prompts to the current AI agent after separate consent.
+Prompt Sensei's local scripts do not send prompt text, scores, reports, or local event data to a service. Lookback may show redacted user prompts to the current AI agent after separate consent. Raw prompts are never stored.
 
 See [docs/privacy.md](docs/privacy.md) for details.
 

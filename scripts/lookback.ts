@@ -16,11 +16,17 @@
 import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
 import { homedir } from "os";
-import { basename, dirname, join, resolve } from "path";
+import { basename, join, resolve } from "path";
 import * as readline from "readline";
+import { DATA_DIR, REPORTS_DIR } from "./lib/paths";
+import { redactSensitiveText } from "./lib/redact";
+import {
+  grantLookbackConsent,
+  hasLookbackConsent,
+  loadSettings,
+  saveSettings,
+} from "./lib/settings";
 
-const DATA_DIR = join(homedir(), ".prompt-sensei");
-const REPORTS_DIR = join(DATA_DIR, "reports");
 const CLAUDE_PROJECTS_DIR = join(homedir(), ".claude", "projects");
 const CODEX_SESSIONS_DIR = join(homedir(), ".codex", "sessions");
 const CODEX_SESSION_INDEX = join(homedir(), ".codex", "session_index.jsonl");
@@ -29,14 +35,6 @@ const CONFIRM_PROMPT_THRESHOLD = 50;
 const MAX_PROMPT_LIMIT = 500;
 const DEFAULT_DISCOVERY_LIMIT = 20;
 const DEFAULT_PROMPT_CHAR_LIMIT = 1200;
-
-const REDACT_PATTERNS: Array<[RegExp, string]> = [
-  [/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, "[EMAIL]"],
-  [/\b(sk-|sk-ant-|ghp_|github_pat_|xox[baprs]-)[A-Za-z0-9\-_]{10,}/g, "[API_KEY]"],
-  [/\b(password|passwd|secret|token|api_?key)\s*[:=]\s*\S+/gi, "[CREDENTIAL]"],
-  [/-----BEGIN [A-Z ]+-----[\s\S]+?-----END [A-Z ]+-----/g, "[PRIVATE_KEY]"],
-  [/https?:\/\/[^\s]+\?[^\s]+/g, "[URL_WITH_PARAMS]"],
-];
 
 type Source = "claude" | "codex";
 type Mode = "report" | "one-by-one";
@@ -371,6 +369,36 @@ function parseLimit(value: string | undefined): number {
   return Math.min(parsed, MAX_PROMPT_LIMIT);
 }
 
+function shortHash(value: string): string {
+  return createHash("sha256").update(value).digest("hex").slice(0, 16);
+}
+
+function lookbackConsentScope(args: Args): string {
+  const pathArg = asString(args["path"]);
+  const sourceArg = asString(args["source"]) ?? (pathArg ? detectSource(pathArg) : "all");
+  const sessionArg = asString(args["session"]);
+  const mode = asString(args["mode"]) ?? "report";
+  const limit = asString(args["limit"]) ?? String(DEFAULT_PROMPT_LIMIT);
+  const promptAccess = asString(args["prompt-access"]) ?? "redacted-prompts";
+  const reportStorage = asString(args["report-storage"]) ?? "temporary-report";
+
+  const selection = pathArg
+    ? `path:${shortHash(resolve(pathArg.replace(/^~(?=$|\/)/, homedir())))}`
+    : sessionArg === "all"
+      ? "session:all"
+      : `session:${sessionArg ?? "selected"}`;
+
+  return [
+    "lookback:v1",
+    `source:${sourceArg}`,
+    selection,
+    `mode:${mode}`,
+    `limit:${limit}`,
+    `access:${promptAccess}`,
+    `storage:${reportStorage}`,
+  ].join("|");
+}
+
 function collectPrompts(args: Args): PromptRecord[] {
   const pathArg = asString(args["path"]);
   const sourceArg = asString(args["source"]) ?? "all";
@@ -402,11 +430,7 @@ function collectPrompts(args: Args): PromptRecord[] {
 }
 
 function redact(text: string): string {
-  let result = text.replaceAll(homedir(), "~");
-  for (const [pattern, replacement] of REDACT_PATTERNS) {
-    result = result.replace(pattern, replacement);
-  }
-  return result;
+  return redactSensitiveText(text, { redactHome: true });
 }
 
 function truncate(text: string, maxChars: number): string {
@@ -515,6 +539,9 @@ Commands:
   --extract [--source claude|codex] --path <file-or-dir> [--mode report|one-by-one] [--limit 30|all]
   --extract --source claude|codex|all --session all [--mode report|one-by-one] [--limit 30|all]
   --save-report [--title "Prompt Sensei Lookback"] < report.md
+  --consent-scope [lookback selection flags]
+  --consent-status --scope <scope>
+  --grant-consent --scope <scope>
 
 Defaults:
   mode: report
@@ -532,6 +559,27 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv);
   if (args["help"]) {
     printHelp();
+    return;
+  }
+
+  if (args["consent-scope"]) {
+    console.log(lookbackConsentScope(args));
+    return;
+  }
+
+  if (args["consent-status"]) {
+    const scope = asString(args["scope"]) ?? lookbackConsentScope(args);
+    const settings = loadSettings();
+    console.log(`Lookback consent: ${hasLookbackConsent(settings, scope) ? "granted" : "not granted"}`);
+    console.log(`Scope: ${scope}`);
+    return;
+  }
+
+  if (args["grant-consent"]) {
+    const scope = asString(args["scope"]) ?? lookbackConsentScope(args);
+    saveSettings(grantLookbackConsent(loadSettings(), scope));
+    console.log("Lookback consent: granted");
+    console.log(`Scope: ${scope}`);
     return;
   }
 
