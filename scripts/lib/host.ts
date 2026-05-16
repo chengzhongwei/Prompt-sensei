@@ -16,7 +16,3 @@ export function hostLabel(host = detectHostFromSkillRoot()): string {
   if (host === "codex") return "Codex";
   return "Unknown";
 }
-
-export function supportsClaudeHooks(host = detectHostFromSkillRoot()): boolean {
-  return host === "claude-code" || host === "unknown";
-}

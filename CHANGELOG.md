@@ -2,6 +2,28 @@
 
 All notable changes to Prompt Sensei are documented here.
 
+## 1.0.0 - 2026-05-16
+
+### Added
+
+- Added Codex lifecycle hook installation for Prompt Sensei auto-start at user or folder scope.
+- Added a Codex `hooks.json` example.
+- Added Codex Stop-hook observe continuation so trusted hooks can add one missing final Sensei line without a visible script call.
+- Added local smoke tests for settings aliases, host hook generation, Codex Stop-hook continuation, duplicate-loop prevention, and host-generated prompt filtering.
+
+### Changed
+
+- Updated setup and consent flows to prefer structured input in Codex via `request_user_input` when the active Codex mode exposes it.
+- Clarified host-native hook behavior, Codex hook trust prompts, and the Claude Code versus Codex compaction difference across docs.
+- Made settings commands accept friendlier aliases and multi-setting forms.
+- Prefer folder-scoped Codex auto observe in quickstart and setup docs, with user scope still available for all sessions.
+
+### Fixed
+
+- Avoid partially saving local settings when hook setup fails during a combined settings command.
+- Avoid duplicate Sensei lines in Codex progress/status blocks by limiting instruction-based observe to final answers and making Stop-hook continuation skip likely in-progress updates.
+- Avoid hashing Codex-generated title and Prompt Sensei continuation prompts.
+
 ## 0.5.1 - 2026-05-03
 
 ### Fixed

@@ -2,9 +2,43 @@
 
 This file holds lower-frequency workflow details for `SKILL.md`. Read it only when the user asks for setup, settings, hooks, or lookback.
 
+## Host-Aware Input
+
+When asking setup or consent questions, prefer structured input when the active host and mode exposes it:
+
+1. Claude Code `AskUserQuestion`
+2. Codex `request_user_input`, when available in the current Codex collaboration mode
+3. Numbered-list fallback when the active tool surface does not expose structured input
+
+Codex `request_user_input` supports one to three short questions per call. Include the Codex-only `id` field for each question. Claude Code `AskUserQuestion` uses the same header, question, and options shape, but omit `id`.
+
+Do not claim the structured picker is unavailable in Codex globally. It is host/mode-dependent: if `request_user_input` is not available in the current Codex mode, briefly say that this mode only supports the numbered fallback and continue setup that way.
+
 ## Consent Text
 
 Use this when observe consent has not already been granted:
+
+Structured-input shape:
+
+```txt
+id: observe_consent (Codex only)
+header: Observe
+question: May Prompt Sensei store local prompt-coaching metadata for this session?
+options:
+  - label: Yes
+    description: Start observe mode and save local metadata only.
+  - label: No
+    description: Do not start observe mode or save consent.
+```
+
+Option mapping:
+
+| Label | Invocation |
+|---|---|
+| Yes | `node <skill-root>/dist/scripts/observe.js --init` |
+| No | Exit gracefully without running a script. |
+
+Fallback only when neither structured-input tool is available:
 
 ```txt
 Before I start, here's what I store locally:
@@ -39,48 +73,86 @@ If the user says no, exit gracefully.
 
 ## First-Time Auto-Start Choice
 
-After first-time observe consent is recorded, branch by host.
+After first-time observe consent is recorded, ask whether to install host-native auto-start hooks.
 
-For Codex, say:
+For Codex, prefer folder scope as the recommended/default auto-start choice. User scope is still available when the user explicitly wants Prompt Sensei hooks in every Codex session on the machine.
+
+Use structured input:
 
 ```txt
-Codex does not currently support Prompt Sensei auto-start hooks. Start coaching in future sessions with:
-
-Use prompt-sensei observe mode.
-
-You can still configure redacted previews in setup.
+id: auto_start_scope (Codex only)
+header: Auto-start
+question: Where should Prompt Sensei auto-start in future sessions?
+options:
+  - label: This folder
+    description: Install folder-scope hooks for this project.
+  - label: All sessions
+    description: Install user-scope hooks for this host.
+  - label: Manual start
+    description: Leave auto observe off and start manually.
 ```
 
-Then skip the auto-start choice.
+Option mapping:
 
-For Claude Code, ask:
+| Label | Invocation |
+|---|---|
+| This folder | `node <skill-root>/dist/scripts/settings.js auto-observe folder` |
+| All sessions | `node <skill-root>/dist/scripts/settings.js auto-observe user` |
+| Manual start | `node <skill-root>/dist/scripts/settings.js auto-observe off` |
+
+Fallback only when neither structured-input tool is available:
 
 ```txt
-Want Prompt Sensei to auto-start in future Claude Code sessions?
+Want Prompt Sensei to auto-start in future sessions?
 
-1. Yes, for all Claude Code sessions on this machine
-2. Yes, only for this folder
+1. Yes, only for this folder
+2. Yes, for all sessions on this machine
 3. No, I will start it manually
 ```
 
 Run:
 
 ```bash
-node <skill-root>/dist/scripts/settings.js auto-observe user
 node <skill-root>/dist/scripts/settings.js auto-observe folder
+node <skill-root>/dist/scripts/settings.js auto-observe user
 node <skill-root>/dist/scripts/settings.js auto-observe off
 ```
 
-Auto observe is opt-in. The installed hooks stay quiet when `autoObserve` is off, and they do not start coaching unless observe consent has already been granted.
+Auto observe is opt-in. The installed hooks stay quiet when `autoObserve` is off, and they do not start coaching unless observe consent has already been granted. In Codex, a trust prompt for new or changed command hooks is expected; tell the user to inspect the command paths with `/hooks` before enabling them.
 
 ## Setup Mode
 
 For `/prompt-sensei setup`:
 
 1. Check observe consent with `node <skill-root>/dist/scripts/settings.js`.
-2. If observe consent is missing, show the consent text above and run `observe.js --init` only after yes.
-3. Use the host-aware auto-start branch above. In Codex, do not offer Claude hook installation as if it were Codex auto-start.
-4. Ask:
+2. Prefer one combined structured-input call with up to three questions when the active host/mode exposes structured input:
+   - Q1 `id: observe_consent`, `header: Observe` — skip if observe consent is already granted.
+   - Q2 `id: auto_start_scope`, `header: Auto-start`.
+   - Q3 `id: redacted_previews`, `header: Previews`.
+3. After answers come back, fan out to the matching `observe.js` or `settings.js` calls based on each answer's label.
+4. In Codex, after applying answers, tell the user that a trust prompt for new or changed command hooks is expected and that `/hooks` shows the exact commands before they enable them.
+
+Combined structured-input question for redacted previews:
+
+```txt
+id: redacted_previews (Codex only)
+header: Previews
+question: Save redacted prompt previews for richer local reports?
+options:
+  - label: Keep off
+    description: Store only metadata and keep prompt previews off.
+  - label: Save previews
+    description: Store best-effort redacted prompt previews locally.
+```
+
+Option mapping:
+
+| Label | Invocation |
+|---|---|
+| Keep off | `node <skill-root>/dist/scripts/settings.js save-redacted-prompts off` |
+| Save previews | `node <skill-root>/dist/scripts/settings.js save-redacted-prompts on` |
+
+Fallback only when neither structured-input tool is available:
 
 ```txt
 Save redacted prompt previews for richer local reports?
@@ -108,6 +180,8 @@ node <skill-root>/dist/scripts/settings.js
 
 ## Settings Commands
 
+Use settings mode for exact inspection or changes after onboarding. Keep `/prompt-sensei setup` as the guided first-run flow for consent, observe startup, auto-start scope, and redacted previews.
+
 Show settings:
 
 ```bash
@@ -119,11 +193,14 @@ Change settings:
 ```bash
 node <skill-root>/dist/scripts/settings.js auto-observe on
 node <skill-root>/dist/scripts/settings.js auto-observe off
-node <skill-root>/dist/scripts/settings.js auto-observe user
 node <skill-root>/dist/scripts/settings.js auto-observe folder
+node <skill-root>/dist/scripts/settings.js auto-observe user
 node <skill-root>/dist/scripts/settings.js save-redacted-prompts on
 node <skill-root>/dist/scripts/settings.js save-redacted-prompts off
+node <skill-root>/dist/scripts/settings.js auto-observe=off save-redacted-prompts=on
 ```
+
+The settings CLI also accepts `enable/disable`, `true/false`, `yes/no`, multi-word names such as `save redacted prompts`, and aliases such as `redacted`, `previews`, and `auto-start`.
 
 If enabling redacted previews, remind the user:
 
@@ -131,24 +208,96 @@ If enabling redacted previews, remind the user:
 This stores redacted prompt text, not raw prompt text. Redaction is best-effort and may not catch everything.
 ```
 
+## Settings Mode
+
+For `/prompt-sensei settings`:
+
+1. If the user only asks to view settings, run `node <skill-root>/dist/scripts/settings.js` and show the compact output.
+2. If the user supplies exact values, run the matching `settings.js` command directly.
+3. If the user asks to configure settings without exact values, prefer structured input when the active host/mode exposes it.
+4. Do not launch a raw terminal TUI from `settings.js` inside Claude Code or Codex. Agent-run commands may not expose interactive stdin reliably; host structured input is the safer picker.
+
+Structured-input shape for configuration:
+
+```txt
+id: auto_start_scope (Codex only)
+header: Auto-start
+question: Auto-start Prompt Sensei in future sessions?
+options:
+  - label: This folder
+    description: Install folder-scope hooks for this project.
+  - label: All sessions
+    description: Install user-scope hooks for this host.
+  - label: Manual start
+    description: Turn auto observe off.
+```
+
+```txt
+id: redacted_previews (Codex only)
+header: Previews
+question: Save redacted prompt previews for richer local reports?
+options:
+  - label: Keep off
+    description: Store only metadata and keep prompt previews off.
+  - label: Save previews
+    description: Store best-effort redacted prompt previews locally.
+```
+
+Option mapping:
+
+| Label | Invocation |
+|---|---|
+| This folder | `node <skill-root>/dist/scripts/settings.js auto-observe folder` |
+| All sessions | `node <skill-root>/dist/scripts/settings.js auto-observe user` |
+| Manual start | `node <skill-root>/dist/scripts/settings.js auto-observe off` |
+| Keep off | `node <skill-root>/dist/scripts/settings.js save-redacted-prompts off` |
+| Save previews | `node <skill-root>/dist/scripts/settings.js save-redacted-prompts on` |
+
+Fallback only when neither structured-input tool is available:
+
+```txt
+What would you like to change?
+
+1. Auto-start only for this folder
+2. Auto-start for all sessions on this machine
+3. Turn auto-start off
+4. Keep redacted prompt previews off
+5. Save redacted prompt previews
+```
+
+After applying changes, display:
+
+```bash
+node <skill-root>/dist/scripts/settings.js
+```
+
 ## Hook Setup
 
-Claude Code only. Codex does not currently support these Prompt Sensei hooks; Codex users should start coaching with natural language: `Use prompt-sensei observe mode.`
+Prompt Sensei auto observe uses host-native lifecycle hooks.
 
-Use [../examples/claude-settings.example.json](../examples/claude-settings.example.json) for the full Claude Code hook structure.
+Claude Code user scope writes `~/.claude/settings.json`.
 
-Scripts:
+Claude Code folder scope writes `.claude/settings.local.json`.
+
+Codex folder scope writes `.codex/hooks.json`. Project-local Codex hooks load only when the project `.codex/` layer is trusted, and new or changed non-managed hooks may need review with `/hooks`.
+
+Codex user scope writes `~/.codex/hooks.json`. Use it only when the user intentionally wants all Codex sessions on the machine to load Prompt Sensei hooks.
+
+Use [../examples/claude-settings.example.json](../examples/claude-settings.example.json) for the full Claude Code hook structure and [../examples/codex-hooks.example.json](../examples/codex-hooks.example.json) for the Codex hook structure. Codex uses the same `SessionStart`, `UserPromptSubmit`, and `Stop` scripts in `hooks.json`; do not mark Codex hooks as `async`, because Codex parses but skips async command hooks in the current release. In Codex auto observe, `SessionStart` loads instruction fallback context when trusted so users still see final-answer coaching if `Stop` is not trusted or not running. `Stop` persists an existing Sensei line and asks for one continuation only when the final assistant response omitted it, while ignoring progress/status updates. If no Codex hooks have been trusted yet, tell the user to start manually with `Use prompt-sensei observe mode.` until they review hooks with `/hooks`.
+
+Scripts used by host hooks:
 
 ```bash
 node <skill-root>/dist/scripts/session-start.js
 node <skill-root>/dist/scripts/stop.js
-node <skill-root>/dist/scripts/pre-compact.js
 node <skill-root>/dist/scripts/observe.js --hash-only
 ```
 
-User scope writes `~/.claude/settings.json`.
+Claude Code also uses:
 
-Folder scope writes `.claude/settings.local.json`.
+```bash
+node <skill-root>/dist/scripts/pre-compact.js
+```
 
 ## Lookback Flow
 

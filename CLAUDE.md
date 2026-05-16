@@ -12,6 +12,7 @@ This project is a local-first prompt-coaching skill for AI coding agents. Keep c
   - `docs/faq.md` for skeptical questions, usefulness claims, support scope, feedback channels, and quick public-facing answers.
   - `docs/privacy.md` for storage, consent, redaction, deletion, and network behavior.
   - `examples/claude-settings.example.json` for copyable Claude Code hook JSON.
+  - `examples/codex-hooks.example.json` for copyable Codex hook JSON.
 - Prefer short links from `SKILL.md` and README files to those deeper docs instead of duplicating the same instructions.
 - Avoid large inline JSON blocks in `SKILL.md` or README unless they are essential for first-use comprehension.
 - Before adding more than a short paragraph to `SKILL.md` or README, ask whether it belongs in a reference doc instead.
@@ -32,7 +33,7 @@ Treat behavior changes as cross-file changes by default. Before finalizing, do a
 - Update `examples/debugging-journey.md` when scoring examples, report style, or recommended prompt patterns change.
 - Update `examples/prompt-gallery.md` when improve-mode examples, copyable before/after prompts, or adoption examples change.
 - Update `eval/prompts.json` when scoring behavior, stage definitions, tip kinds, or teaching expectations change.
-- Keep Claude Code hook snippets in `examples/claude-settings.example.json` and reference them from docs. Do not duplicate full hook JSON in `SKILL.md` or README.
+- Keep host hook snippets in `examples/claude-settings.example.json` and `examples/codex-hooks.example.json`, and reference them from docs. Do not duplicate full hook JSON in `SKILL.md` or README.
 - Keep the public command surface consistent across `SKILL.md`, `README.md`, `README-zh.md`, and examples. The public prompt-rewrite command is `/prompt-sensei improve`; legacy `review`/`score` wording should only appear as a redirect to `improve`.
 - Keep beginner and advanced paths separate: basic observe/improve/lookback should work without hook setup, while optional settings can live in advanced docs.
 
@@ -54,8 +55,9 @@ After the sweep, update every affected surface together or explicitly note why a
 
 - Claude Code and Codex use separate skill directories. Do not assume Codex will load `~/.claude/skills/prompt-sensei`.
 - Keep `npm run sync-codex-install` working when files need to be copied from the Claude install into `~/.codex/skills/prompt-sensei`.
-- Claude Code hooks (`SessionStart`, `PreCompact`, `UserPromptSubmit`) are Claude Code-only. Do not describe them as Codex auto-start.
-- In Codex, observe mode is started by natural language such as `Use prompt-sensei observe mode.`
+- Claude Code and Codex both support host-native auto-start hooks. Claude Code uses `~/.claude/settings.json` or `.claude/settings.local.json`; Codex uses `~/.codex/hooks.json` or `.codex/hooks.json`.
+- `PreCompact` is Claude Code-only. Codex hooks should use `SessionStart`, `UserPromptSubmit`, and `Stop`, and should not set `async: true` on command hooks.
+- In Codex, manual observe mode is still started by natural language such as `Use prompt-sensei observe mode.`
 - Settings, reports, clear, redacted prompt previews, and lookback should stay usable from either Claude Code or Codex installs.
 - If adding host-specific behavior, use `scripts/lib/host.ts` instead of ad hoc path checks.
 
@@ -100,6 +102,7 @@ For settings, hooks, or host-compatibility changes, also smoke test:
 node dist/scripts/settings.js
 node dist/scripts/setup-hooks.js auto-observe off
 node dist/scripts/sync-codex-install.js --dry-run
+npm run smoke
 ```
 
 When changing Codex-related behavior, run at least one smoke test from a Codex-like install path or sync to `~/.codex/skills/prompt-sensei` and verify `Use prompt-sensei settings` behavior manually.

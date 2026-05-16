@@ -29,7 +29,7 @@ If you explicitly enable `saveRedactedPrompts`, Prompt Sensei may also store:
 
 This stores redacted prompt text, not raw prompt text. Redaction is best-effort and may not catch everything.
 
-When an optional Claude Code `UserPromptSubmit` hook is enabled, it records hash-only captures after consent:
+When an optional host `UserPromptSubmit` hook is enabled, it records hash-only captures after consent:
 
 | Field | Type | Example |
 |---|---|---|
@@ -37,7 +37,7 @@ When an optional Claude Code `UserPromptSubmit` hook is enabled, it records hash
 | `type` | string | `"prompt-hashed"` |
 | `promptHash` | string | `"a3f1b2c4..."` |
 
-When an optional Claude Code `Stop` hook is enabled, it can quietly record the final scored Sensei line after a response:
+When an optional host `Stop` hook is enabled, it can quietly record the final scored Sensei line after a response:
 
 | Field | Type | Example |
 |---|---|---|
@@ -50,7 +50,7 @@ When an optional Claude Code `Stop` hook is enabled, it can quietly record the f
 | `tipKind` | string | `"add-verification-command"` |
 | `source` | string | `"stop-hook"` |
 
-The Stop hook reads Claude Code's `last_assistant_message` hook field to parse the Sensei line. It does not store Claude's response text.
+The Stop hook reads the host's `last_assistant_message` hook field to parse the Sensei line. In Codex auto observe, if that line is missing, the Stop hook can request one continuation whose only purpose is to add the Sensei line. It does not store the assistant response text.
 
 Operational hooks may also write non-prompt markers to `events.jsonl`, such as `session-compacted`, with only timestamp and compact-state metadata. These hooks stay inert unless auto observe is enabled and observe consent has already been granted.
 
@@ -162,15 +162,15 @@ Lookback does not make network calls itself. The active AI coding tool may proce
 
 ## Auto observe
 
-`autoObserve` is opt-in and defaults to `false`. When enabled, a Claude Code `SessionStart` hook can add a short context reminder that Prompt Sensei coaching should be active for the session, but only if observe consent is already granted.
+`autoObserve` is opt-in and defaults to `false`. When enabled, trusted host hooks can resume Prompt Sensei coaching for the session, but only if observe consent is already granted. Claude Code uses `SessionStart` context for this. Codex uses `SessionStart` as an instruction fallback when trusted, while the `Stop` hook persists an existing final Sensei line or requests one only when needed. It skips progress/status updates.
 
 If `autoObserve` is enabled without observe consent, Prompt Sensei does not auto-start. It adds only a short note that the user can run `/prompt-sensei observe` to consent.
 
-Auto observe hooks can be installed at user scope in `~/.claude/settings.json` or folder scope in `.claude/settings.local.json`. The folder-level file is local to that working folder and is not meant to be committed. Turning auto observe off keeps any installed hooks quiet.
+Auto observe hooks can be installed at folder or user scope. Claude Code writes `.claude/settings.local.json` or `~/.claude/settings.json`. Codex writes `.codex/hooks.json` or `~/.codex/hooks.json`. Folder-level hook files are local to that working folder and are not meant to be committed. Turning auto observe off keeps any installed hooks quiet.
 
 ## PreCompact and session persistence
 
-The optional `PreCompact` hook is best-effort. It writes a lightweight `session-compacted` marker to `events.jsonl` and returns short compact-safe context so coaching can resume after compaction, but only when auto observe is enabled and observe consent is already granted.
+The optional Claude Code `PreCompact` hook is best-effort. It writes a lightweight `session-compacted` marker to `events.jsonl` and returns short compact-safe context so coaching can resume after compaction, but only when auto observe is enabled and observe consent is already granted.
 
 The hook does not block compaction. It does not store raw conversation text. The resume context is intentionally short.
 

@@ -4,6 +4,157 @@ Copyable before/after prompts for common AI coding workflows.
 
 Prompt Sensei's goal is not to make every prompt long. It is to add the smallest missing detail that helps an AI coding agent act safely.
 
+Many real prompts start tiny. The examples below keep that spirit: add the missing input, constraint, or check without turning a five-word request into a specification document.
+
+---
+
+## Tiny Everyday Prompts
+
+### Python Function
+
+**Before**
+
+```txt
+write a python function to sort list
+```
+
+**After**
+
+```txt
+Write a Python function that sorts a list of [items].
+
+Input:
+- Type: [numbers / strings / dicts / custom objects]
+- Example: [sample input]
+
+Requirements:
+- Return a new sorted list without mutating the original
+- Handle empty lists
+- Use ascending order unless I specify otherwise
+
+Return:
+1. Function code
+2. Two simple examples
+3. One edge-case test
+```
+
+**Habit:** Name the input type and edge case before asking for code.
+
+### Quick Bug Fix
+
+**Before**
+
+```txt
+this is broken fix it
+```
+
+**After**
+
+```txt
+Help me fix this bug.
+
+Expected:
+[what should happen]
+
+Actual:
+[what happens instead]
+
+Evidence:
+[error message, log line, screenshot text, or failing test]
+
+Relevant code:
+[file path or pasted snippet]
+
+Return the likely cause first, then the smallest safe fix.
+```
+
+**Habit:** Add expected behavior, actual behavior, and one piece of evidence.
+
+### Simple Explanation
+
+**Before**
+
+```txt
+explain this code
+```
+
+**After**
+
+```txt
+Explain this code for someone who knows [language/framework level].
+
+Focus on:
+- what it does
+- why each main step exists
+- any surprising edge cases
+
+Code:
+[paste code or name file/function]
+
+Keep the explanation practical and point out anything risky or confusing.
+```
+
+**Habit:** Name the audience and the code boundary.
+
+### Make It Faster
+
+**Before**
+
+```txt
+make this faster
+```
+
+**After**
+
+```txt
+Look for a small performance improvement in [file/function].
+
+Context:
+- Current slow case: [input size or scenario]
+- Current behavior: [timing, query count, or symptom]
+
+Constraints:
+- Do not change the public API
+- Prefer readability over clever tricks
+
+Return:
+1. Likely bottleneck
+2. Minimal change
+3. How to verify the improvement
+```
+
+**Habit:** Say what "faster" means and how to verify it.
+
+### API Helper
+
+**Before**
+
+```txt
+make an api call
+```
+
+**After**
+
+```txt
+Write a [language/framework] helper that calls [API endpoint].
+
+Input:
+- Method: [GET/POST/etc.]
+- Endpoint: [URL or route]
+- Auth: [none / bearer token from env var / existing client]
+- Request body shape: [fields]
+- Response shape: [fields]
+
+Requirements:
+- Handle non-2xx responses
+- Do not log secrets
+- Return typed/structured data if possible
+
+Include one example call and one error-case test.
+```
+
+**Habit:** Name the endpoint, auth shape, and failure behavior.
+
 ---
 
 ## Debugging
@@ -148,7 +299,7 @@ Return the test command to run.
 
 ---
 
-## Vibe Coding Beginner
+## Beginner App Improvement
 
 **Before**
 

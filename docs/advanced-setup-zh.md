@@ -25,33 +25,48 @@ npm run settings
 ```bash
 node dist/scripts/settings.js auto-observe on
 node dist/scripts/settings.js auto-observe off
-node dist/scripts/settings.js auto-observe user
 node dist/scripts/settings.js auto-observe folder
+node dist/scripts/settings.js auto-observe user
 node dist/scripts/settings.js save-redacted-prompts on
 node dist/scripts/settings.js save-redacted-prompts off
+node dist/scripts/settings.js auto-observe=off save-redacted-prompts=on
+```
+
+设置命令现在也接受更顺手的写法：`enable/disable`、`true/false`、`yes/no` 都可以；也支持 `redacted`、`previews`、`auto-start` 这类别名，以及 `save redacted prompts` 这样的多词名称。
+
+## Local Script Checks
+
+```bash
+npm run init       # 创建本地授权和会话记录
+npm run observe    # 交互式运行时显示 observe 脚本用法
+npm run settings   # 查看本地设置
+npm run setup-hooks -- auto-observe folder
+npm run sync-codex-install
+npm run smoke      # 运行本地发布 smoke 检查
 ```
 
 ## Auto Observe
 
-`autoObserve` 必须主动开启。它只允许 SessionStart hook 在 observe 已授权后恢复 coaching。
+`autoObserve` 必须主动开启。它只允许受信任的宿主 hooks 在 observe 已授权后恢复 coaching。
 
-Claude Code 范围：
+Claude Code hook 范围：
 
 - User level：本机所有 Claude Code 会话，写入 `~/.claude/settings.json`
 - Folder level：只在当前文件夹，写入 `.claude/settings.local.json`
 
-Codex 目前不支持 Prompt Sensei auto-start hooks。在 Codex 里请用自然语言开始：
+Codex hook 范围：
 
-```txt
-Use prompt-sensei observe mode.
-```
+- Folder level：只在当前文件夹，写入 `.codex/hooks.json`
+- User level：本机所有 Codex 会话，写入 `~/.codex/hooks.json`
 
 安装 hooks 并开启 auto observe：
 
 ```bash
-node dist/scripts/setup-hooks.js auto-observe user
 node dist/scripts/setup-hooks.js auto-observe folder
+node dist/scripts/setup-hooks.js auto-observe user
 ```
+
+在 Codex 里，默认建议用 `folder`；只有明确希望本机所有 Codex 会话都加载 Prompt Sensei hooks 时才用 `user`。
 
 关闭 auto observe：
 
@@ -61,20 +76,44 @@ node dist/scripts/setup-hooks.js auto-observe off
 
 关闭后，已安装的 hooks 会保持安静。
 
-## Claude Code Hooks
+在 Codex 里，新安装或修改过的 command hooks 触发信任提示是正常安全行为。用 `/hooks` 先检查具体命令再启用；敏感项目可以优先选择 folder scope，避免 user-wide hooks；如果想让已安装 hooks 保持安静，可以用 `setup-hooks auto-observe off` 关闭 auto observe。
 
-只适用于 Claude Code。这些 hooks 不是 Codex auto-start 机制。
+## Host Support
 
-可复制的设置文件见 [../examples/claude-settings.example.json](../examples/claude-settings.example.json)。
+| 能力 | Claude Code | Codex |
+|---|---|---|
+| 手动 observe | `/prompt-sensei observe` | `Use prompt-sensei observe mode.` |
+| Hook-based observe comments | `SessionStart` 激活 coaching；`Stop` 持久化最后一行 Sensei 评分 | `SessionStart` 可以加载 instruction fallback；`Stop` 持久化已有评分行，或在需要时请求一行 |
+| Auto-observe hooks | `SessionStart`、`UserPromptSubmit`、`Stop`、`PreCompact` | `SessionStart`、`UserPromptSubmit`、`Stop` |
+| Compaction continuity | 明确的 `PreCompact` hook 恢复短 coaching context | Codex 目前没有 `PreCompact` hook；`Stop` 持久化/修复最后评分行，`SessionStart` 在可信 startup/resume/clear 时重新加载 fallback context |
 
-示例包含：
+Codex natural-language equivalents:
+
+```txt
+Use prompt-sensei observe mode.
+Use prompt-sensei to improve this prompt: "fix this test"
+Use prompt-sensei to look back at my recent prompts.
+Use prompt-sensei to show my report.
+Use prompt-sensei settings.
+Use prompt-sensei setup.
+Use prompt-sensei to turn auto observe on.
+Use prompt-sensei to turn redacted previews off.
+```
+
+## 宿主 Hooks
+
+Claude Code 可复制设置文件见 [../examples/claude-settings.example.json](../examples/claude-settings.example.json)，Codex 可复制 hooks 文件见 [../examples/codex-hooks.example.json](../examples/codex-hooks.example.json)。
+
+Claude Code hooks 包含：
 
 - `SessionStart`：用于 opt-in auto-start context
 - `UserPromptSubmit`：用于授权后的 hash-only prompt captures
 - `Stop`：用于安静地持久化最后一行 Sensei 评分
 - `PreCompact`：用于 compaction 后的短上下文恢复
 
-`UserPromptSubmit` 只记录 hash，因为 hook 没有足够的对话上下文来评分。`Stop` hook 会在回复结束后解析可见的 Sensei 行，并在不显示 Bash 调用的情况下记录分数、阶段和推断出的习惯元数据。
+Codex hooks 使用同样的 `SessionStart`、`UserPromptSubmit` 和 `Stop` 脚本，配置位置是 `.codex/hooks.json` 或 `~/.codex/hooks.json`。在 Codex 里，`SessionStart` 会在 auto observe 和授权都存在后加载 instruction fallback context，这样即使 `Stop` hook 尚未被信任或没有运行，final-answer coaching 仍会出现。`Stop` hook 会持久化已有 Sensei 行，并且只有在 final answer 缺少 Sensei 行时才触发一次 continuation，同时忽略 progress 和 tool-status updates。如果还没有信任任何 Codex hooks，未来会话里的 auto observe 还不能运行；在审核 hooks 前，可以手动说 `Use prompt-sensei observe mode.`。Codex 目前会解析但跳过 async command hooks，所以 Prompt Sensei 安装 Codex `UserPromptSubmit` 时不会写入 `async: true`。
+
+`UserPromptSubmit` 只记录 hash，因为 hook 没有足够的对话上下文来评分。`Stop` hook 会在回复结束后或 Codex continuation 结束后解析可见的 Sensei 行，并在不显示 Bash 调用的情况下记录分数、阶段和推断出的习惯元数据。
 
 ## 同步 Codex 安装
 

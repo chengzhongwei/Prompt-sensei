@@ -6,7 +6,13 @@
 
 [Quickstart](#5-minute-quickstart) · [FAQ](docs/faq.md) · [Privacy](docs/privacy.md) · [Examples](examples/prompt-gallery.md) · [Advanced setup](docs/advanced-setup.md) · [Discussions](https://github.com/chengzhongwei/Prompt-sensei/discussions)
 
+<p align="center">
+  <img src="assets/prompt-sensei-banner-en.jpg" alt="Prompt Sensei banner: Claude Code and Codex support, local-first optional hooks, no raw prompts stored, and stage-aware feedback." />
+</p>
+
 Prompt Sensei is a quiet, local-first prompt coach for Claude Code and Codex. It gives stage-aware feedback, rewrites rough prompts into better ones, looks back on local history when you ask, and helps you practice one habit at a time.
+
+It is built as a real host-integrated skill, not just a markdown rubric: Prompt Sensei supports hook-based observe comments, opt-in auto-observe hooks, hash-only prompt captures, quiet Stop-hook persistence, and compact-safe continuity where the host exposes the lifecycle events.
 
 No cloud. No telemetry. No leaderboard. No raw prompt archive.
 
@@ -37,7 +43,7 @@ git clone https://github.com/chengzhongwei/Prompt-sensei ~/.claude/skills/prompt
 (cd ~/.claude/skills/prompt-sensei && npm install && npm run build)
 ```
 
-Then start live coaching with `/prompt-sensei observe` inside Claude Code.
+Then start live coaching with `/prompt-sensei observe` inside Claude Code. For optional auto-start and privacy settings, run `/prompt-sensei setup`.
 
 Install for Codex:
 
@@ -46,7 +52,7 @@ git clone https://github.com/chengzhongwei/Prompt-sensei ~/.codex/skills/prompt-
 (cd ~/.codex/skills/prompt-sensei && npm install && npm run build)
 ```
 
-Then ask Codex in natural language: `Use prompt-sensei observe mode.`
+Then ask Codex in natural language: `Use prompt-sensei observe mode.` For optional hook-based auto-start, run `npm run setup-hooks -- auto-observe folder` or use `/prompt-sensei setup` after the skill is loaded.
 
 Start live coaching in Claude Code:
 
@@ -96,14 +102,14 @@ See [examples/prompt-gallery.md](examples/prompt-gallery.md) for more copyable b
 
 ## Supported Environments
 
-Prompt Sensei works best when the host tool can load the skill directly.
+Prompt Sensei works best when the host tool can load the skill directly. It supports both Claude Code and Codex, with host-native hooks for optional auto-observe.
 
 | Invocation style | Environments |
 |---|---|
 | Direct skill command, e.g. `/prompt-sensei improve "fix this test"` | Claude Code |
 | Natural language, e.g. `Use prompt-sensei to improve this prompt...` | Codex |
 
-Cursor and other AI coding tools are not supported yet. `/prompt-sensei observe` is a Claude Code skill command. In Codex, natural-language requests depend on the host agent loading the installed skill. `npm run init` only creates Prompt Sensei's local consent/session record; it does not turn on live coaching by itself.
+Cursor and other AI coding tools are not supported yet. `/prompt-sensei observe` is a Claude Code skill command. In Codex, natural-language requests depend on the host agent loading the installed skill. See [advanced setup](docs/advanced-setup.md#host-support) for the Claude Code/Codex hook matrix and trust notes.
 
 ---
 
@@ -123,7 +129,7 @@ For a one-time guided setup, use:
 /prompt-sensei setup
 ```
 
-Setup covers observe consent, optional Claude Code auto-start hooks, and whether to save redacted prompt previews. In Codex, setup uses manual/natural-language start because Claude hooks are not available there. Redacted previews stay off unless you explicitly turn them on. Advanced details live in [docs/advanced-setup.md](docs/advanced-setup.md).
+Setup covers observe consent, optional host auto-start hooks, and whether to save redacted prompt previews. In Codex, a trust prompt for new or changed command hooks is expected; inspect commands with `/hooks` before enabling them. Advanced details live in [docs/advanced-setup.md](docs/advanced-setup.md).
 
 ---
 
@@ -153,37 +159,17 @@ More commands:
 /prompt-sensei clear                # delete local Prompt Sensei data
 ```
 
-See [docs/advanced-setup.md](docs/advanced-setup.md) for settings commands, hook setup, and consent scopes.
+In Codex, use natural language equivalents such as `Use prompt-sensei observe mode.` or `Use prompt-sensei to improve this prompt: "fix this test"`.
 
-For Codex, use natural language:
+See [docs/advanced-setup.md](docs/advanced-setup.md) for settings commands, hook setup, Codex examples, and consent scopes.
 
-```txt
-Use prompt-sensei observe mode.
-Use prompt-sensei to improve this prompt: "fix this test"
-Use prompt-sensei to look back at my recent prompts.
-Use prompt-sensei to show my report.
-Use prompt-sensei settings.
-Use prompt-sensei setup.
-Use prompt-sensei to turn auto observe on.
-```
-
-For direct script checks:
-
-```bash
-npm run init       # create local consent/session records
-npm run observe    # show observe-script usage when run interactively
-npm run settings   # show local settings
-npm run setup-hooks -- auto-observe user
-npm run sync-codex-install
-```
+For direct script checks, see [advanced setup](docs/advanced-setup.md#local-script-checks).
 
 ---
 
-## v0.5 Settings
+## Settings
 
-Prompt Sensei stores local preferences in `~/.prompt-sensei/settings.json`. Defaults are intentionally quiet: auto observe off, redacted prompt previews off, and raw prompts never stored.
-
-Auto observe and redacted prompt previews are opt-in. Auto observe hooks are Claude Code-only; Codex users start with `Use prompt-sensei observe mode.` Use `/prompt-sensei setup` for a guided path or [docs/advanced-setup.md](docs/advanced-setup.md) for the full settings reference.
+Prompt Sensei stores local preferences in `~/.prompt-sensei/settings.json`. Defaults are intentionally quiet: auto observe off, redacted prompt previews off, and raw prompts never stored. Use `/prompt-sensei setup` for a guided path or [docs/advanced-setup.md](docs/advanced-setup.md) for the full settings reference.
 
 ---
 
@@ -202,7 +188,7 @@ Prompt Sensei is stage-aware. A short exploration prompt can be reasonable early
 
 The coaching line stays small:
 
-> **[Sensei: 68/100 · Diagnosis; Tip: add the error message and file path]**
+> **[[Sensei: 68/100 · Diagnosis; Tip: add the error message and file path]]()**
 
 Think of the score as prompt readiness for the current stage, not universal prompt quality. A 100/100 prompt can still produce a weak answer if the model lacks domain knowledge, the task is ambiguous outside the prompt, or the rubric does not fit the user's domain.
 
@@ -222,63 +208,27 @@ For the full philosophy, read [docs/philosophy.md](docs/philosophy.md). For scor
 
 Prompt Sensei does not prove that a prompt is better just because the number went up. It gives a structured coaching signal.
 
-To check whether it helped, compare the original prompt and the improved prompt on the same task:
-
-- Did the AI ask fewer clarification questions?
-- Was the first answer more accurate or easier to act on?
-- Did the agent make fewer broad or surprising changes?
-- Was the result easier to verify?
-
-If the improved prompt does not produce a better outcome, treat that as useful feedback for the rubric. Prompt Sensei is meant to teach better prompting habits, not replace your judgment.
-
-For maintainers, `npm run eval` prints calibration fixtures that make it easier to review Sensei's stage choices, score bands, flags, and tips across weak, medium, strong, privacy-risk, safety-risk, and non-engineering prompts.
-
-For a more direct skeptical read, see [FAQ](docs/faq.md).
+To check whether it helped, compare the original and improved prompt on the same task: fewer clarification turns, fewer surprising edits, a better first answer, and easier verification. For calibration details and the skeptical version, see [FAQ](docs/faq.md).
 
 ---
 
 ## Lookback
 
-`/prompt-sensei lookback` analyzes selected local Claude Code or Codex history after separate consent.
-
-It can:
-
-- find recent Claude Code and Codex sessions
-- analyze one session or all sessions
-- generate one-by-one coaching or a full lookback report
-- save a markdown report only after confirmation
-
-The flow is guided one step at a time: choose from a visible session list, choose the analysis format, choose the prompt count, then confirm consent.
-
-Lookback reads raw history locally, redacts user prompts before analysis, and does not store raw history, prompt hashes, or derived metadata by default.
-
-Prompt Sensei remembers consent by scope to avoid repeated prompts, but asks again when the data access scope expands. For example, it asks again when moving from one selected session to all sessions, from metadata-only to redacted prompt analysis, from Claude Code to Codex, or from a temporary report to a saved Markdown report.
+`/prompt-sensei lookback` analyzes selected local Claude Code or Codex history after separate consent. It can inspect one session or recent sessions, generate coaching, and save a Markdown report only after confirmation. Privacy details live in [docs/privacy.md](docs/privacy.md#lookback-privacy), and workflow details live in [docs/skill-flows.md](docs/skill-flows.md#lookback-flow).
 
 ---
 
-## Optional Claude Code Hooks
+## Optional Host Hooks
 
-Claude Code hooks can provide opt-in auto-start, hash-only background captures, quiet persistence of the final Sensei score line, and compact-safe continuity. They are optional and stay quiet unless the relevant consent/settings allow them. Codex does not currently use these hooks.
-
-Auto observe uses `SessionStart` to silently load observe mode, `UserPromptSubmit` to hash prompts in the background, and `Stop` to record the final Sensei score line without a visible Bash call.
-
-Use `/prompt-sensei setup`, [docs/advanced-setup.md](docs/advanced-setup.md), or [examples/claude-settings.example.json](examples/claude-settings.example.json) when you want hook setup details.
+Host hooks provide opt-in auto-start, hash-only background captures, hook-triggered observe comments, and quiet persistence of the final Sensei score line. They are optional and stay quiet unless consent/settings allow them. See [advanced setup](docs/advanced-setup.md#host-support), [Claude example hooks](examples/claude-settings.example.json), and [Codex example hooks](examples/codex-hooks.example.json).
 
 ---
 
 ## Privacy
 
-Prompt content is sensitive. Prompt Sensei stores nothing until you consent.
+Prompt content is sensitive. Prompt Sensei stores nothing until you consent. After consent, it stores local metadata under `~/.prompt-sensei/`; raw prompts are never stored.
 
-After consent, it stores local metadata only:
-
-- `~/.prompt-sensei/events.jsonl` — observation log
-- `~/.prompt-sensei/config.json` — legacy consent compatibility
-- `~/.prompt-sensei/settings.json` — settings and scoped consent
-- `~/.prompt-sensei/update-check.json` — cached update status
-- `~/.prompt-sensei/reports/` — optional saved lookback reports
-
-Prompt Sensei's local scripts do not send prompt text, scores, reports, or local event data to a service. Lookback may show redacted user prompts to the current AI agent after separate consent. Raw prompts are never stored.
+Prompt Sensei's local scripts do not send prompt text, scores, reports, or local event data to a service. Lookback may show redacted user prompts to the current AI agent after separate consent.
 
 See [docs/privacy.md](docs/privacy.md) for details.
 

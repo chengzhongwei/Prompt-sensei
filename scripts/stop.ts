@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 /**
- * Claude Code Stop hook support for quiet auto-observe persistence.
+ * Stop hook support for quiet auto-observe persistence.
  *
- * This hook parses the final Sensei line from Claude's response and records a
- * scored prompt observation without requiring a visible Bash tool call.
+ * This hook parses the final Sensei line from the assistant response and records
+ * a scored prompt observation without requiring a visible Bash tool call. In
+ * Codex, it can also request one continuation when auto observe is active and
+ * the response omitted the Sensei line.
  */
 
 import { appendFileSync, existsSync, readFileSync } from "fs";
 import * as readline from "readline";
+import { detectHostFromSkillRoot } from "./lib/host";
 import { EVENTS_FILE } from "./lib/paths";
 import { ensureDataDir, hasObserveConsent, loadSettings } from "./lib/settings";
 import {
@@ -85,6 +88,53 @@ function parseSenseiLine(message: string): { score: number; stage: Stage; tipKin
   };
 }
 
+function hasSenseiLine(message: string): boolean {
+  return /Sensei:/i.test(message);
+}
+
+function withoutSenseiLines(message: string): string {
+  return message
+    .split("\n")
+    .filter((line) => !/Sensei:/i.test(line))
+    .join("\n")
+    .trim();
+}
+
+function isLikelyProgressUpdate(message: string): boolean {
+  const body = withoutSenseiLines(message);
+  if (!body) return false;
+  if (body.length > 900) return false;
+  if (/```|\n#{1,6}\s|\n[-*]\s|\n\d+\.\s/.test(body)) return false;
+  if (/\b(validation passed|verified with|changes made|updated files|summary)\b/i.test(body)) return false;
+  if (/^done\.?$/i.test(body)) return false;
+
+  const explicitProgress =
+    /^(Confirmed so far|So far|Done with .*now|This matches|The check lands|The patch now|The .* now|This .* now)/i.test(body);
+  if (explicitProgress) return true;
+
+  const startsLikeProgress =
+    /^(I(?:'|’)ll|I will|I(?:'|’)m|I am|I found|I see|I(?:'|’)ve|I have)/i.test(body);
+  const ongoingWork =
+    /\b(checking|comparing|confirming|editing|exploring|inspecting|looking|opening|patching|reading|running|searching|tracing|verifying|will|next|now|going to)\b/i.test(
+      body
+    );
+  return startsLikeProgress && ongoingWork;
+}
+
+function printCodexSenseiContinuation(): void {
+  console.log(JSON.stringify({
+    decision: "block",
+    reason: [
+      "Prompt Sensei auto observe is active. Add exactly one final Sensei line for the immediately preceding user prompt.",
+      "Do not revise or summarize the previous answer.",
+      "Do this only for the final answer; do not add Sensei lines to progress updates, tool-status updates, or working notes.",
+      "If the preceding user prompt was mechanical low-signal input, output exactly `> **[[Sensei: skipped grading for low-signal prompt]]()**`.",
+      "Otherwise classify the prompt stage, pick one canonical Prompt Sensei tip kind first, and output exactly one Markdown blockquote line in this shape: `> **[[Sensei: 94/100 · Execution; Excellent — ready for this stage]]()**`.",
+      "For any score below 90, include `Tip:` with the concrete habit phrase, for example `> **[[Sensei: 68/100 · Diagnosis; Tip: add the error message and file path]]()**`.",
+    ].join(" "),
+  }));
+}
+
 function appendEvent(event: PromptEvent): void {
   ensureDataDir();
   appendFileSync(EVENTS_FILE, JSON.stringify(event) + "\n", "utf8");
@@ -123,14 +173,24 @@ function wasRecentlyRecorded(parsed: { score: number; stage: string; tipKind?: s
 async function main(): Promise<void> {
   const input = parseInput(await readStdin());
   const settings = loadSettings();
+  const host = detectHostFromSkillRoot();
 
   if (!settings.autoObserve || !hasObserveConsent(settings)) {
     return;
   }
 
   const lastMessage = input.last_assistant_message ?? "";
+  if (host === "codex" && isLikelyProgressUpdate(lastMessage)) {
+    return;
+  }
+
   const parsed = parseSenseiLine(lastMessage);
-  if (!parsed) return;
+  if (!parsed) {
+    if (host === "codex" && !input.stop_hook_active && !hasSenseiLine(lastMessage)) {
+      printCodexSenseiContinuation();
+    }
+    return;
+  }
   if (wasRecentlyRecorded(parsed)) return;
   const flag = parsed.tipKind ? flagForTipKind(parsed.tipKind) : null;
 

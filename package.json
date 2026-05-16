@@ -1,6 +1,6 @@
 {
   "name": "prompt-sensei",
-  "version": "0.5.1",
+  "version": "1.0.0",
   "description": "A quiet, local-first prompt mentor with improve, observe, report, and lookback workflows",
   "type": "commonjs",
   "scripts": {
@@ -16,6 +16,7 @@
     "stop": "node dist/scripts/stop.js",
     "pre-compact": "node dist/scripts/pre-compact.js",
     "eval": "node dist/scripts/eval.js",
+    "smoke": "node dist/scripts/smoke-test.js",
     "check-update": "node dist/scripts/update.js --check",
     "update": "node dist/scripts/update.js --apply",
     "clear-data": "node dist/scripts/clear.js"
