@@ -29,22 +29,24 @@ node dist/scripts/settings.js auto-observe user
 node dist/scripts/settings.js auto-observe folder
 node dist/scripts/settings.js save-redacted-prompts on
 node dist/scripts/settings.js save-redacted-prompts off
+node dist/scripts/settings.js auto-observe=off save-redacted-prompts=on
 ```
+
+The settings command is forgiving: `enable/disable`, `true/false`, and `yes/no` work too. It also accepts aliases such as `redacted`, `previews`, and `auto-start`, plus multi-word names like `save redacted prompts`.
 
 ## Auto Observe
 
-`autoObserve` is opt-in. It only lets the SessionStart hook resume coaching after observe consent has already been granted.
+`autoObserve` is opt-in. It only lets the host SessionStart hook resume coaching after observe consent has already been granted.
 
-Claude Code scopes:
+Claude Code hook scopes:
 
 - User level: all Claude Code sessions on this machine, stored in `~/.claude/settings.json`
 - Folder level: only the current folder, stored in `.claude/settings.local.json`
 
-Codex does not currently support Prompt Sensei auto-start hooks. In Codex, start coaching with:
+Codex hook scopes:
 
-```txt
-Use prompt-sensei observe mode.
-```
+- User level: all Codex sessions on this machine, stored in `~/.codex/hooks.json`
+- Folder level: only the current folder, stored in `.codex/hooks.json`
 
 Install hooks and turn auto observe on:
 
@@ -61,18 +63,20 @@ node dist/scripts/setup-hooks.js auto-observe off
 
 Installed hooks stay quiet while auto observe is off.
 
-## Claude Code Hooks
+In Codex, new or changed hooks may need review with `/hooks` before they run.
 
-Claude Code only. These hooks are not a Codex auto-start mechanism.
+## Host Hooks
 
-Use [../examples/claude-settings.example.json](../examples/claude-settings.example.json) as a copyable settings file.
+Use [../examples/claude-settings.example.json](../examples/claude-settings.example.json) as a copyable Claude Code settings file, or [../examples/codex-hooks.example.json](../examples/codex-hooks.example.json) as a copyable Codex hooks file.
 
-The example includes:
+Claude Code hooks include:
 
 - `SessionStart` for opt-in auto-start context
 - `UserPromptSubmit` for hash-only prompt captures after consent
 - `Stop` for quiet persistence of the final scored Sensei line
 - `PreCompact` for compact-safe coaching continuity
+
+Codex hooks use the same `SessionStart`, `UserPromptSubmit`, and `Stop` scripts from `~/.codex/hooks.json` or `.codex/hooks.json`. Codex currently parses but skips async command hooks, so Prompt Sensei installs Codex `UserPromptSubmit` without `async: true`.
 
 `UserPromptSubmit` captures are hash-only because the hook does not have enough conversation context to score the prompt. The `Stop` hook parses the visible Sensei line after the response and records its score, stage, and inferred habit metadata without a visible Bash call.
 

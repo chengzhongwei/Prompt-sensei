@@ -29,22 +29,24 @@ node dist/scripts/settings.js auto-observe user
 node dist/scripts/settings.js auto-observe folder
 node dist/scripts/settings.js save-redacted-prompts on
 node dist/scripts/settings.js save-redacted-prompts off
+node dist/scripts/settings.js auto-observe=off save-redacted-prompts=on
 ```
+
+设置命令现在也接受更顺手的写法：`enable/disable`、`true/false`、`yes/no` 都可以；也支持 `redacted`、`previews`、`auto-start` 这类别名，以及 `save redacted prompts` 这样的多词名称。
 
 ## Auto Observe
 
-`autoObserve` 必须主动开启。它只允许 SessionStart hook 在 observe 已授权后恢复 coaching。
+`autoObserve` 必须主动开启。它只允许当前宿主的 SessionStart hook 在 observe 已授权后恢复 coaching。
 
-Claude Code 范围：
+Claude Code hook 范围：
 
 - User level：本机所有 Claude Code 会话，写入 `~/.claude/settings.json`
 - Folder level：只在当前文件夹，写入 `.claude/settings.local.json`
 
-Codex 目前不支持 Prompt Sensei auto-start hooks。在 Codex 里请用自然语言开始：
+Codex hook 范围：
 
-```txt
-Use prompt-sensei observe mode.
-```
+- User level：本机所有 Codex 会话，写入 `~/.codex/hooks.json`
+- Folder level：只在当前文件夹，写入 `.codex/hooks.json`
 
 安装 hooks 并开启 auto observe：
 
@@ -61,18 +63,20 @@ node dist/scripts/setup-hooks.js auto-observe off
 
 关闭后，已安装的 hooks 会保持安静。
 
-## Claude Code Hooks
+在 Codex 里，新安装或修改过的 hooks 可能需要用 `/hooks` 审核并信任后才会运行。
 
-只适用于 Claude Code。这些 hooks 不是 Codex auto-start 机制。
+## 宿主 Hooks
 
-可复制的设置文件见 [../examples/claude-settings.example.json](../examples/claude-settings.example.json)。
+Claude Code 可复制设置文件见 [../examples/claude-settings.example.json](../examples/claude-settings.example.json)，Codex 可复制 hooks 文件见 [../examples/codex-hooks.example.json](../examples/codex-hooks.example.json)。
 
-示例包含：
+Claude Code hooks 包含：
 
 - `SessionStart`：用于 opt-in auto-start context
 - `UserPromptSubmit`：用于授权后的 hash-only prompt captures
 - `Stop`：用于安静地持久化最后一行 Sensei 评分
 - `PreCompact`：用于 compaction 后的短上下文恢复
+
+Codex hooks 使用同样的 `SessionStart`、`UserPromptSubmit` 和 `Stop` 脚本，配置位置是 `~/.codex/hooks.json` 或 `.codex/hooks.json`。Codex 目前会解析但跳过 async command hooks，所以 Prompt Sensei 安装 Codex `UserPromptSubmit` 时不会写入 `async: true`。
 
 `UserPromptSubmit` 只记录 hash，因为 hook 没有足够的对话上下文来评分。`Stop` hook 会在回复结束后解析可见的 Sensei 行，并在不显示 Bash 调用的情况下记录分数、阶段和推断出的习惯元数据。
 

@@ -2,6 +2,24 @@
 
 All notable changes to Prompt Sensei are documented here.
 
+## 1.0.0 - 2026-05-16
+
+### Added
+
+- Added Codex lifecycle hook installation for Prompt Sensei auto-start at user or folder scope.
+- Added a Codex `hooks.json` example.
+- Added a local smoke test for settings aliases and host hook generation.
+
+### Changed
+
+- Updated setup and consent flows to prefer structured input in Codex via `request_user_input` when the active Codex mode exposes it.
+- Clarified host-native hook behavior across Claude Code and Codex docs.
+- Made settings commands accept friendlier aliases and multi-setting forms.
+
+### Fixed
+
+- Avoid partially saving local settings when hook setup fails during a combined settings command.
+
 ## 0.5.1 - 2026-05-03
 
 ### Fixed

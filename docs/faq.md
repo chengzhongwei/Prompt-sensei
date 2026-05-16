@@ -16,7 +16,7 @@ If none of that changes after a couple of weeks, the tool may not be useful for 
 
 ## Is this just a prompt template?
 
-No. Prompt Sensei is a local skill/application with TypeScript scripts, settings, consent state, local reports, lookback, and optional Claude Code hooks. The coaching rubric is part of it, but the project is meant to show that a skill can be more than a markdown rulebook.
+No. Prompt Sensei is a local skill/application with TypeScript scripts, settings, consent state, local reports, lookback, and optional host hooks for Claude Code and Codex. The coaching rubric is part of it, but the project is meant to show that a skill can be more than a markdown rulebook.
 
 ## Is the score objective?
 
@@ -28,17 +28,18 @@ A short exploration prompt can score well because it is reasonable for early dis
 
 No. The model may still lack domain knowledge, misunderstand the codebase, or choose a weak implementation. Prompt Sensei can improve the request shape; it cannot guarantee the result.
 
-## What changed in 0.5.0?
+## What changed in 1.0.0?
 
-0.5.0 focuses on better next-habit coaching:
+1.0.0 is the first stable release. It combines the next-habit coaching from 0.5.x with host-native auto-start support for both Claude Code and Codex:
 
 - task-aware tip priorities
 - canonical tip kinds for repeated habits
 - habit-first reports
-- better eval fixtures for tip quality
-- stricter consent behavior around compact/resume hooks
+- setup flows that prefer structured option pickers when the host exposes them
+- Claude Code and Codex lifecycle hook installation
+- friendlier settings commands for auto observe and redacted previews
 
-The scoring math did not change. The goal is better suggestions, not grander claims.
+The scoring math is still intentionally modest. The goal is better suggestions and safer setup behavior, not grander claims.
 
 ## Does Prompt Sensei upload my prompts?
 
@@ -70,11 +71,9 @@ Cursor and other AI coding tools are not supported today. There is no Cursor-spe
 
 ## Does Codex support auto-start hooks?
 
-No. Claude Code hooks are Claude Code-only. In Codex, start coaching with natural language:
+Yes. Prompt Sensei can use Codex lifecycle hooks for auto-start when installed from the Codex skill root. User-scope hooks go in `~/.codex/hooks.json`; folder-scope hooks go in `.codex/hooks.json`.
 
-```txt
-Use prompt-sensei observe mode.
-```
+Codex may ask you to review or trust new hooks with `/hooks` before they run. Manual start still works with natural language: `Use prompt-sensei observe mode.`
 
 ## How can I report a scoring issue without exposing private prompts?
 

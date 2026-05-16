@@ -126,17 +126,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isHostGeneratedPrompt(text: string): boolean {
+  const normalized = text.trim();
+  return normalized.startsWith(
+    "You are a helpful assistant. You will be presented with a user prompt, and your job is to provide a short title for a task that will be created from that prompt."
+  );
+}
+
 function promptTextFromStdin(stdinText: string): string {
   try {
     const parsed = JSON.parse(stdinText) as unknown;
     if (isRecord(parsed) && typeof parsed["prompt"] === "string") {
-      return parsed["prompt"];
+      return isHostGeneratedPrompt(parsed["prompt"]) ? "" : parsed["prompt"];
     }
     return "";
   } catch {
     // Plain stdin is the normal path for direct script usage.
   }
-  return stdinText;
+  return isHostGeneratedPrompt(stdinText) ? "" : stdinText;
 }
 
 async function main(): Promise<void> {
