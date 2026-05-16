@@ -162,15 +162,15 @@ Lookback does not make network calls itself. The active AI coding tool may proce
 
 ## Auto observe
 
-`autoObserve` is opt-in and defaults to `false`. When enabled, a Claude Code `SessionStart` hook can add a short context reminder that Prompt Sensei coaching should be active for the session, but only if observe consent is already granted.
+`autoObserve` is opt-in and defaults to `false`. When enabled, a host `SessionStart` hook can add a short context reminder that Prompt Sensei coaching should be active for the session, but only if observe consent is already granted.
 
 If `autoObserve` is enabled without observe consent, Prompt Sensei does not auto-start. It adds only a short note that the user can run `/prompt-sensei observe` to consent.
 
-Auto observe hooks can be installed at user scope in `~/.claude/settings.json` or folder scope in `.claude/settings.local.json`. The folder-level file is local to that working folder and is not meant to be committed. Turning auto observe off keeps any installed hooks quiet.
+Auto observe hooks can be installed at user or folder scope. Claude Code writes `~/.claude/settings.json` or `.claude/settings.local.json`. Codex writes `~/.codex/hooks.json` or `.codex/hooks.json`. Folder-level hook files are local to that working folder and are not meant to be committed. Turning auto observe off keeps any installed hooks quiet.
 
 ## PreCompact and session persistence
 
-The optional `PreCompact` hook is best-effort. It writes a lightweight `session-compacted` marker to `events.jsonl` and returns short compact-safe context so coaching can resume after compaction, but only when auto observe is enabled and observe consent is already granted.
+The optional Claude Code `PreCompact` hook is best-effort. It writes a lightweight `session-compacted` marker to `events.jsonl` and returns short compact-safe context so coaching can resume after compaction, but only when auto observe is enabled and observe consent is already granted.
 
 The hook does not block compaction. It does not store raw conversation text. The resume context is intentionally short.
 

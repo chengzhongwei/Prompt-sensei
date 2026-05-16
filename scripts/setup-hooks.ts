@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Install Prompt Sensei Claude Code hooks for opt-in auto observe.
+ * Install Prompt Sensei hooks for opt-in auto observe.
  *
  * Usage:
  *   setup-hooks.js auto-observe user
@@ -32,7 +32,7 @@ interface HookGroup {
   hooks?: CommandHook[];
 }
 
-interface ClaudeSettings {
+interface HookSettings {
   hooks?: Record<string, HookGroup[]>;
   [key: string]: unknown;
 }
@@ -44,8 +44,8 @@ function usage(): void {
   console.log(`Prompt Sensei Hook Setup
 
 Commands:
-  setup-hooks auto-observe user     Install auto observe hooks in ~/.claude/settings.json
-  setup-hooks auto-observe folder   Install auto observe hooks in ./.claude/settings.local.json
+  setup-hooks auto-observe user     Install auto observe hooks for this host at user scope
+  setup-hooks auto-observe folder   Install auto observe hooks for this host at folder scope
   setup-hooks auto-observe off      Turn auto observe off; installed hooks stay inert`);
 }
 
@@ -62,22 +62,26 @@ function hookCommand(script: string, args = ""): string {
 }
 
 function settingsPath(scope: HookScope): string {
+  if (HOST === "codex") {
+    if (scope === "user") return join(homedir(), ".codex", "hooks.json");
+    return join(process.cwd(), ".codex", "hooks.json");
+  }
   if (scope === "user") return join(homedir(), ".claude", "settings.json");
   return join(process.cwd(), ".claude", "settings.local.json");
 }
 
-function loadClaudeSettings(path: string): ClaudeSettings {
+function loadHookSettings(path: string): HookSettings {
   if (!existsSync(path)) return {};
   try {
     const parsed = JSON.parse(readFileSync(path, "utf8")) as unknown;
-    return isRecord(parsed) ? (parsed as ClaudeSettings) : {};
+    return isRecord(parsed) ? (parsed as HookSettings) : {};
   } catch {
     process.stderr.write(`Could not parse ${path}. Fix the JSON before running hook setup.\n`);
     process.exit(1);
   }
 }
 
-function ensureHook(settings: ClaudeSettings, event: string, matcher: string, hook: CommandHook): void {
+function ensureHook(settings: HookSettings, event: string, matcher: string, hook: CommandHook): void {
   settings.hooks ??= {};
   const groups = settings.hooks[event] ?? [];
   let group = groups.find((candidate) => candidate.matcher === matcher);
@@ -99,7 +103,7 @@ function ensureHook(settings: ClaudeSettings, event: string, matcher: string, ho
   settings.hooks[event] = groups;
 }
 
-function removeGeneratedHook(settings: ClaudeSettings, event: string, matcher: string, command: string): void {
+function removeGeneratedHook(settings: HookSettings, event: string, matcher: string, command: string): void {
   const groups = settings.hooks?.[event];
   if (!groups) return;
 
@@ -114,12 +118,16 @@ function removeGeneratedHook(settings: ClaudeSettings, event: string, matcher: s
     .filter((group) => (group.hooks?.length ?? 0) > 0);
 }
 
-function installHooks(scope: HookScope): string {
-  const target = settingsPath(scope);
-  const settings = loadClaudeSettings(target);
+function removeGeneratedHookFromMatchers(settings: HookSettings, event: string, matchers: string[], command: string): void {
+  for (const matcher of matchers) {
+    removeGeneratedHook(settings, event, matcher, command);
+  }
+}
+
+function installClaudeHooks(settings: HookSettings): void {
   const sessionStartCommand = hookCommand("session-start.js");
 
-  removeGeneratedHook(settings, "SessionStart", "startup|resume|compact", sessionStartCommand);
+  removeGeneratedHookFromMatchers(settings, "SessionStart", ["startup|resume|compact"], sessionStartCommand);
   ensureHook(settings, "SessionStart", "*", {
     type: "command",
     command: sessionStartCommand,
@@ -141,6 +149,43 @@ function installHooks(scope: HookScope): string {
     command: hookCommand("pre-compact.js"),
     timeout: 10,
   });
+}
+
+function installCodexHooks(settings: HookSettings): void {
+  const sessionStartCommand = hookCommand("session-start.js");
+  const userPromptSubmitCommand = hookCommand("observe.js", "--hash-only");
+  const stopCommand = hookCommand("stop.js");
+
+  removeGeneratedHookFromMatchers(settings, "SessionStart", ["*", "startup|resume|clear"], sessionStartCommand);
+  removeGeneratedHookFromMatchers(settings, "UserPromptSubmit", ["", "*"], userPromptSubmitCommand);
+  removeGeneratedHookFromMatchers(settings, "Stop", ["", "*"], stopCommand);
+
+  ensureHook(settings, "SessionStart", "startup|resume|clear", {
+    type: "command",
+    command: sessionStartCommand,
+    timeout: 10,
+  });
+  ensureHook(settings, "UserPromptSubmit", "", {
+    type: "command",
+    command: userPromptSubmitCommand,
+    timeout: 10,
+  });
+  ensureHook(settings, "Stop", "", {
+    type: "command",
+    command: stopCommand,
+    timeout: 10,
+  });
+}
+
+function installHooks(scope: HookScope): string {
+  const target = settingsPath(scope);
+  const settings = loadHookSettings(target);
+
+  if (HOST === "codex") {
+    installCodexHooks(settings);
+  } else {
+    installClaudeHooks(settings);
+  }
 
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, JSON.stringify(settings, null, 2) + "\n", "utf8");
@@ -173,21 +218,15 @@ function main(): void {
     process.exit(1);
   }
 
-  if (HOST === "codex") {
-    process.stderr.write(
-      "Auto observe hooks are Claude Code-only. In Codex, start coaching with: Use prompt-sensei observe mode.\n"
-    );
-    process.stderr.write(
-      "Install or run this hook setup from ~/.claude/skills/prompt-sensei if you want Claude Code hooks.\n"
-    );
-    process.exit(1);
-  }
-
   const target = installHooks(scope);
   updateAutoObserve(true);
   console.log("Auto observe: on");
-  console.log(`Hook scope: ${scope === "user" ? "user" : "folder"}`);
+  console.log(`Hook host: ${HOST === "codex" ? "Codex" : "Claude Code"}`);
+  console.log(`Hook scope: ${scope}`);
   console.log(`Updated: ${target}`);
+  if (HOST === "codex") {
+    console.log("Review new or changed Codex hooks with `/hooks` if Codex asks for trust.");
+  }
 }
 
 main();

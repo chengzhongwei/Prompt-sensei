@@ -37,7 +37,7 @@ git clone https://github.com/chengzhongwei/Prompt-sensei ~/.claude/skills/prompt
 (cd ~/.claude/skills/prompt-sensei && npm install && npm run build)
 ```
 
-Then start live coaching with `/prompt-sensei observe` inside Claude Code.
+Then start live coaching with `/prompt-sensei observe` inside Claude Code. For optional auto-start and privacy settings, run `/prompt-sensei setup`.
 
 Install for Codex:
 
@@ -46,7 +46,7 @@ git clone https://github.com/chengzhongwei/Prompt-sensei ~/.codex/skills/prompt-
 (cd ~/.codex/skills/prompt-sensei && npm install && npm run build)
 ```
 
-Then ask Codex in natural language: `Use prompt-sensei observe mode.`
+Then ask Codex in natural language: `Use prompt-sensei observe mode.` For optional auto-start, run `npm run setup-hooks -- auto-observe user` or use `/prompt-sensei setup` after the skill is loaded.
 
 Start live coaching in Claude Code:
 
@@ -123,7 +123,7 @@ For a one-time guided setup, use:
 /prompt-sensei setup
 ```
 
-Setup covers observe consent, optional Claude Code auto-start hooks, and whether to save redacted prompt previews. In Codex, setup uses manual/natural-language start because Claude hooks are not available there. Redacted previews stay off unless you explicitly turn them on. Advanced details live in [docs/advanced-setup.md](docs/advanced-setup.md).
+Setup covers observe consent, optional host auto-start hooks, and whether to save redacted prompt previews. In Codex, auto-start uses Codex lifecycle hooks and may require reviewing new hooks with `/hooks`. Redacted previews stay off unless you explicitly turn them on. Advanced details live in [docs/advanced-setup.md](docs/advanced-setup.md).
 
 ---
 
@@ -165,6 +165,7 @@ Use prompt-sensei to show my report.
 Use prompt-sensei settings.
 Use prompt-sensei setup.
 Use prompt-sensei to turn auto observe on.
+Use prompt-sensei to turn redacted previews off.
 ```
 
 For direct script checks:
@@ -175,15 +176,18 @@ npm run observe    # show observe-script usage when run interactively
 npm run settings   # show local settings
 npm run setup-hooks -- auto-observe user
 npm run sync-codex-install
+npm run smoke      # run local release smoke checks
 ```
 
 ---
 
-## v0.5 Settings
+## Settings
 
 Prompt Sensei stores local preferences in `~/.prompt-sensei/settings.json`. Defaults are intentionally quiet: auto observe off, redacted prompt previews off, and raw prompts never stored.
 
-Auto observe and redacted prompt previews are opt-in. Auto observe hooks are Claude Code-only; Codex users start with `Use prompt-sensei observe mode.` Use `/prompt-sensei setup` for a guided path or [docs/advanced-setup.md](docs/advanced-setup.md) for the full settings reference.
+Auto observe and redacted prompt previews are opt-in. Auto observe uses Claude Code hooks in Claude Code and Codex lifecycle hooks in Codex. Use `/prompt-sensei setup` for a guided path or [docs/advanced-setup.md](docs/advanced-setup.md) for the full settings reference.
+
+Settings commands accept friendlier forms too, such as `auto-observe=off save-redacted-prompts=on`, `save redacted prompts enable`, and aliases like `redacted`, `previews`, or `auto-start`.
 
 ---
 
@@ -202,7 +206,7 @@ Prompt Sensei is stage-aware. A short exploration prompt can be reasonable early
 
 The coaching line stays small:
 
-> **[Sensei: 68/100 · Diagnosis; Tip: add the error message and file path]**
+> **[[Sensei: 68/100 · Diagnosis; Tip: add the error message and file path]]()**
 
 Think of the score as prompt readiness for the current stage, not universal prompt quality. A 100/100 prompt can still produce a weak answer if the model lacks domain knowledge, the task is ambiguous outside the prompt, or the rubric does not fit the user's domain.
 
@@ -256,13 +260,13 @@ Prompt Sensei remembers consent by scope to avoid repeated prompts, but asks aga
 
 ---
 
-## Optional Claude Code Hooks
+## Optional Host Hooks
 
-Claude Code hooks can provide opt-in auto-start, hash-only background captures, quiet persistence of the final Sensei score line, and compact-safe continuity. They are optional and stay quiet unless the relevant consent/settings allow them. Codex does not currently use these hooks.
+Host hooks can provide opt-in auto-start, hash-only background captures, and quiet persistence of the final Sensei score line. Claude Code hooks also provide compact-safe continuity. They are optional and stay quiet unless the relevant consent/settings allow them.
 
-Auto observe uses `SessionStart` to silently load observe mode, `UserPromptSubmit` to hash prompts in the background, and `Stop` to record the final Sensei score line without a visible Bash call.
+Auto observe uses `SessionStart` to silently load observe mode, `UserPromptSubmit` to hash prompts in the background, and `Stop` to record the final Sensei score line without a visible Bash call. Claude Code installs hooks in `~/.claude/settings.json` or `.claude/settings.local.json`; Codex installs hooks in `~/.codex/hooks.json` or `.codex/hooks.json` and may ask you to review them with `/hooks`.
 
-Use `/prompt-sensei setup`, [docs/advanced-setup.md](docs/advanced-setup.md), or [examples/claude-settings.example.json](examples/claude-settings.example.json) when you want hook setup details.
+Use `/prompt-sensei setup`, [docs/advanced-setup.md](docs/advanced-setup.md), [examples/claude-settings.example.json](examples/claude-settings.example.json), or [examples/codex-hooks.example.json](examples/codex-hooks.example.json) when you want hook setup details.
 
 ---
 

@@ -15,7 +15,7 @@ If observation mode is active, every normal user-facing response must end with e
 Essential commands:
 
 - `/prompt-sensei` or `/prompt-sensei observe` — activate coaching for this session
-- `/prompt-sensei observe --auto-start` — silently activate coaching from a trusted SessionStart hook
+- `/prompt-sensei observe --auto-start` — silently activate coaching from a trusted host SessionStart hook
 - `/prompt-sensei improve <prompt>` — score and minimally improve one prompt
 - `/prompt-sensei lookback` — analyze selected local Claude Code or Codex history after separate consent
 - `/prompt-sensei setup` — guided setup for consent, auto-start scope, and optional redacted previews
@@ -28,10 +28,11 @@ Advanced commands:
 - `/prompt-sensei settings`
 - `/prompt-sensei settings auto-observe on|off|user|folder`
 - `/prompt-sensei settings save-redacted-prompts on|off`
+- `/prompt-sensei settings auto-observe=off save-redacted-prompts=on`
 - `/prompt-sensei clear`
 - `/prompt-sensei update`
 
-Natural-language equivalents in Codex include "use prompt-sensei", "improve this prompt", "look back at my prompt history", "show my prompt-sensei report", "use prompt-sensei setup", and "turn auto observe on".
+Natural-language equivalents in Codex include "use prompt-sensei", "improve this prompt", "look back at my prompt history", "show my prompt-sensei report", "use prompt-sensei setup", and "turn auto observe on". Settings commands accept friendly values such as `enable/disable`, `true/false`, and aliases such as `redacted`, `previews`, and `auto-start`.
 
 When running scripts, use the installed skill root:
 
@@ -107,21 +108,21 @@ For below-90 feedback, pick exactly one canonical `tipKind` before writing the v
 
 ## Observe
 
-When invoked by a Claude Code SessionStart hook with `observe --auto-start`:
+When invoked by a trusted host SessionStart hook with `observe --auto-start`:
 
 1. Treat observe mode as active for this session.
 2. Be silent: do not announce Prompt Sensei, do not explain setup, do not run `settings.js`, and do not run `observe.js --init`.
 3. Assume the hook already checked `autoObserve` and observe consent.
 4. Answer the user's current prompt normally, then append exactly one Sensei line.
-5. Keep auto-start quiet. Do not make visible `observe.js` recording calls; Claude Code hooks handle prompt hashing and scored-line persistence in the background.
+5. Keep auto-start quiet. Do not make visible `observe.js` recording calls; host hooks handle prompt hashing and scored-line persistence in the background when installed.
 6. Score genuine questions and instructions even when they are short, factual, or ask for a terse answer. Skip only mechanical inputs such as one-word acknowledgements, numeric menu choices, slash-command-only wrappers, explicit "just reply ..." tests, and context-resume summaries.
 
 When `/prompt-sensei observe` starts:
 
 1. Say: "Prompt Sensei will be coaching this session. After each prompt, I'll add a one-line score. Type `/prompt-sensei report` anytime for your private summary."
 2. Check consent with `node <skill-root>/dist/scripts/settings.js`.
-3. If observe consent is not granted, show the short consent text from [docs/skill-flows.md](docs/skill-flows.md), wait for yes/no, then run `node <skill-root>/dist/scripts/observe.js --init`.
-4. After first-time consent, follow the host-aware auto-start guidance in [docs/skill-flows.md](docs/skill-flows.md). In Codex, do not offer Claude hook installation as Codex auto-start.
+3. If observe consent is not granted, ask with structured input first when the active host/mode exposes it: use `AskUserQuestion` in Claude Code or `request_user_input` in Codex. Keep the numbered-list yes/no prompt from [docs/skill-flows.md](docs/skill-flows.md) as the fallback when structured input is unavailable. If the user grants consent, run `node <skill-root>/dist/scripts/observe.js --init`.
+4. After first-time consent, follow the host-aware auto-start guidance in [docs/skill-flows.md](docs/skill-flows.md). Install only the current host's native hooks.
 5. If observe consent is already granted, do not ask again.
 
 For each later normal user prompt while observe mode is active:
@@ -178,7 +179,7 @@ Preserve the user's intent. Add only the highest-impact missing details or place
 
 ## Other Modes
 
-- `/prompt-sensei setup`: read [docs/skill-flows.md](docs/skill-flows.md), then guide consent, host-aware auto-start setup, and optional redacted previews. In Codex, explain that Claude hooks are unavailable and future sessions start with `Use prompt-sensei observe mode.`
+- `/prompt-sensei setup`: read [docs/skill-flows.md](docs/skill-flows.md), then use one combined structured-input call on either host when the active mode exposes it: `AskUserQuestion` in Claude Code or `request_user_input` in Codex, with up to three questions for consent, auto-start, and redacted previews. Skip questions whose answers are already known. If structured input is unavailable, briefly explain the mode limitation and use the numbered fallback. On Codex, install Codex hooks for auto-start when requested and tell the user to review or trust new hooks with `/hooks` if Codex asks.
 - `/prompt-sensei settings`: run `node <skill-root>/dist/scripts/settings.js` or the matching setting command and show compact output.
 - `/prompt-sensei lookback`: read [docs/skill-flows.md](docs/skill-flows.md), then follow the scoped-consent lookback flow.
 - `/prompt-sensei report`: run `node <skill-root>/dist/scripts/report.js` and display its Markdown output.
