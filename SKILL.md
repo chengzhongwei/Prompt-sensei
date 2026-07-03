@@ -1,7 +1,7 @@
 ---
 name: prompt-sensei
 description: Stage-aware prompt coaching, prompt improvement, lookback analysis, prompting habit feedback, and local reports about prompt quality for AI coding agents such as Claude Code or Codex.
-argument-hint: [observe|improve|lookback|setup|help]
+argument-hint: "[observe|improve|lookback|setup|help]"
 ---
 
 # Prompt Sensei
