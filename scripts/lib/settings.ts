@@ -142,13 +142,39 @@ export function loadSettings(): PromptSenseiSettings {
   }
 }
 
+// loadSettings() falls back to defaults when settings.json cannot be parsed.
+// Writing those defaults back would silently replace the user's file (and
+// every consent record in it), so writes refuse to touch an unreadable file.
+function hasUnreadableSettingsFile(): boolean {
+  if (!existsSync(SETTINGS_FILE)) return false;
+  try {
+    JSON.parse(readFileSync(SETTINGS_FILE, "utf8"));
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function unreadableSettingsMessage(): string {
+  return `Could not parse ${SETTINGS_FILE}. Fix the JSON or delete the file; Prompt Sensei will not overwrite it.\n`;
+}
+
 export function saveSettings(settings: PromptSenseiSettings): void {
+  if (hasUnreadableSettingsFile()) {
+    process.stderr.write(unreadableSettingsMessage());
+    process.exit(1);
+  }
   ensureDataDir();
   writeFileSync(SETTINGS_FILE, JSON.stringify(mergeSettings(settings), null, 2) + "\n", "utf8");
 }
 
 export function ensureSettings(): PromptSenseiSettings {
   const settings = loadSettings();
+  if (hasUnreadableSettingsFile()) {
+    process.stderr.write(unreadableSettingsMessage());
+    process.stderr.write("Showing default settings until it is fixed.\n");
+    return settings;
+  }
   saveSettings(settings);
   return settings;
 }

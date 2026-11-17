@@ -6,7 +6,7 @@
  * user's real Claude Code, Codex, or Prompt Sensei settings.
  */
 
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { basename, join, resolve } from "path";
 import { spawnSync } from "child_process";
@@ -113,6 +113,31 @@ function testSettingsAliases(root: string): void {
   assert(output.includes("- Auto observe: off"), "settings alias smoke: auto observe should be off");
   assert(output.includes("- Save redacted prompts: on"), "settings alias smoke: redacted previews should be on");
   assert(output.includes("- Save redacted prompts consent: granted"), "settings alias smoke: redacted consent should be granted");
+}
+
+function testPreservesUnreadableSettings(root: string): void {
+  const home = join(root, "unreadable-settings-home");
+  const settingsDir = join(home, ".prompt-sensei");
+  const settingsFile = join(settingsDir, "settings.json");
+  // A hand edit with a trailing comma: the user's consent and preferences are still in the file.
+  const original = [
+    "{",
+    '  "version": 1,',
+    '  "autoObserve": true,',
+    '  "consent": { "observe": { "granted": true, "grantedAt": "2026-05-01T00:00:00.000Z" }, }',
+    "}",
+    "",
+  ].join("\n");
+  mkdirSync(settingsDir, { recursive: true });
+  writeFileSync(settingsFile, original, "utf8");
+
+  const shown = run(SETTINGS_JS, [], { home });
+  assert(readFileSync(settingsFile, "utf8") === original, "unreadable settings smoke: showing settings must not overwrite the file");
+  assert(shown.stderr.includes("Could not parse"), "unreadable settings smoke: showing settings should warn about the file");
+
+  const changed = run(SETTINGS_JS, ["save-redacted-prompts=on"], { home, expectFailure: true });
+  assert(readFileSync(settingsFile, "utf8") === original, "unreadable settings smoke: changing a setting must not overwrite the file");
+  assert(changed.stderr.includes("Could not parse"), "unreadable settings smoke: changing a setting should explain the failure");
 }
 
 function testRejectsMultipleScopes(root: string): void {
@@ -282,6 +307,7 @@ function main(): void {
 
   try {
     testSettingsAliases(root);
+    testPreservesUnreadableSettings(root);
     testRejectsMultipleScopes(root);
     testClaudeHooks(root);
     testCodexHooks(root);
